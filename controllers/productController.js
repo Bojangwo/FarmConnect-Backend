@@ -594,9 +594,33 @@ const deleteProduct = async (req, res) => {
   }
 };
 
+
+const getMyProducts = async (req, res) => {
+  try {
+    const products = await Product.find({
+      farmer: req.user.id,
+    })
+      .populate("category", "name")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      count: products.length,
+      products,
+    });
+  } catch (error) {
+    console.error("Get my products error:", error.message);
+
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+
 module.exports = {
   getProducts,
   getProductById,
+  getMyProducts,
   createProduct,
   updateProduct,
   deleteProduct,

@@ -148,6 +148,17 @@ deliveryAssignmentHistory: [
       ],
       default: "not_assigned",
     },
+
+    buyerConfirmedDelivery: {
+  type: Boolean,
+  default: false,
+},
+
+buyerConfirmedAt: {
+  type: Date,
+  default: null,
+},
+    
   },
   {
     timestamps: true,

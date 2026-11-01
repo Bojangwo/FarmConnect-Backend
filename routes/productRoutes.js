@@ -4,6 +4,7 @@ const upload = require("../middleware/uploadMiddleware");
 const {
   getProducts,
   getProductById,
+  getMyProducts,
   createProduct,
   updateProduct,
   deleteProduct,
@@ -16,6 +17,14 @@ const router = express.Router();
 
 // Public - anyone can browse products
 router.get("/", getProducts);
+
+// Farmer only - retrieve own products
+router.get(
+  "/my-products",
+  protect,
+  authorizeRoles("farmer"),
+  getMyProducts
+);
 
 // Public - anyone can view one product
 router.get("/:id", getProductById);

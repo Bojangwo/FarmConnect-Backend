@@ -25,10 +25,12 @@ const protect = (req, res, next) => {
 
     next();
   } catch (error) {
-    return res.status(401).json({
-      message: "Not authorized. Invalid or expired token.",
-    });
-  }
+  console.error("JWT Authentication Error:", error.name, error.message);
+
+  return res.status(401).json({
+    message: "Not authorized. Invalid or expired token.",
+  });
+}
 };
 
 module.exports = protect;

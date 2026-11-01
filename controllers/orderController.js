@@ -3,6 +3,7 @@ const Order = require("../models/Order");
 const Product = require("../models/Product");
 const User = require("../models/User");
 
+
 // Get orders belonging to the logged-in buyer or farmer
 const getMyOrders = async (req, res) => {
   try {
@@ -170,13 +171,13 @@ const updateOrderStatus = async (req, res) => {
     }
 
     const allowedTransitions = {
-      pending: ["confirmed", "cancelled"],
-      confirmed: ["processing", "cancelled"],
-      processing: ["ready_for_delivery"],
-      ready_for_delivery: ["completed"],
-      completed: [],
-      cancelled: [],
-    };
+  pending: ["confirmed", "cancelled"],
+  confirmed: ["processing", "cancelled"],
+  processing: ["ready_for_delivery"],
+  ready_for_delivery: [],
+  completed: [],
+  cancelled: [],
+};
 
     let responseStatus = 200;
     let responseBody;
@@ -450,10 +451,6 @@ const updateDeliveryStatus = async (req, res) => {
 
     order.deliveryStatus = deliveryStatus;
 
-    // Mark the main order completed after successful delivery.
-    if (deliveryStatus === "delivered") {
-      order.status = "completed";
-    }
 
     // Update the current assignment's outcome when the delivery ends.
     if (
@@ -549,6 +546,71 @@ const getDeliveryHistory = async (req, res) => {
 
 
 
+const confirmDelivery = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    // Validate the order ID.
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({
+        message: "Invalid order ID",
+      });
+    }
+
+    // Only the buyer who placed the order can confirm it.
+    const order = await Order.findOne({
+      _id: orderId,
+      buyer: req.user.id,
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        message: "Order not found or does not belong to you",
+      });
+    }
+
+    // Prevent repeated confirmations.
+    if (order.buyerConfirmedDelivery) {
+      return res.status(400).json({
+        message: "Delivery has already been confirmed",
+      });
+    }
+
+    // The delivery agent must first mark the order as delivered.
+    if (order.deliveryStatus !== "delivered") {
+      return res.status(400).json({
+        message: "You can only confirm an order that has been delivered",
+      });
+    }
+
+    // Ensure the order is still awaiting completion.
+    if (order.status !== "ready_for_delivery") {
+      return res.status(400).json({
+        message: "This order cannot be completed in its current status",
+      });
+    }
+
+    order.buyerConfirmedDelivery = true;
+    order.buyerConfirmedAt = new Date();
+    order.status = "completed";
+
+    await order.save();
+
+    return res.status(200).json({
+      message: "Delivery confirmed successfully",
+      order,
+    });
+  } catch (error) {
+    console.error("Confirm delivery error:", error);
+
+    return res.status(500).json({
+      message: "Server error while confirming delivery",
+    });
+  }
+};
+
+
+
 module.exports = {
   getMyOrders,
   getMyDeliveries,
@@ -557,4 +619,5 @@ module.exports = {
   assignDeliveryAgent,
   updateDeliveryStatus,
   getDeliveryHistory,
+  confirmDelivery,
 };

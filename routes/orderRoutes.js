@@ -9,6 +9,7 @@ const {
   assignDeliveryAgent,
   updateDeliveryStatus,
   getDeliveryHistory,
+  confirmDelivery,
 } = require("../controllers/orderController");
 
 const protect = require("../middleware/authMiddleware");
@@ -56,6 +57,13 @@ router.get(
 
 // View one order's details
 router.get("/:orderId", protect, getOrderById);
+
+router.patch(
+  "/:orderId/confirm-delivery",
+  protect,
+  require("../middleware/roleMiddleware")("buyer"),
+  confirmDelivery
+);
 
 
 
