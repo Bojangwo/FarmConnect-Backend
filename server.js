@@ -9,8 +9,11 @@ const purchaseRequestRoutes = require("./routes/purchaseRequestRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+
 
 const connectDB = require("./config/db");
+
 
 dotenv.config();
 
@@ -36,6 +39,8 @@ app.use(
 );
 app.use("/api/payments", paymentRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/admin", adminRoutes);
+
 
 
 // Test route

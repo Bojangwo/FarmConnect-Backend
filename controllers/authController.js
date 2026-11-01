@@ -113,12 +113,15 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // Check if account is suspended
-    if (user.status === "suspended") {
+    
+    // Check whether the account is active
+    if (user.status !== "active") {
       return res.status(403).json({
-        message: "Your account has been suspended",
+        message:
+          "Your account is inactive or suspended. Please contact the administrator.",
       });
     }
+
 
     // Compare password with hashed password
     const isPasswordCorrect = await bcrypt.compare(
