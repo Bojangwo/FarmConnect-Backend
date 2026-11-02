@@ -1,5 +1,6 @@
 
 const User = require("../models/User");
+const Order = require("../models/Order");
 
 // Admin: Get all registered users
 const getAllUsers = async (req, res) => {
@@ -87,7 +88,33 @@ const updateUserStatus = async (req, res) => {
 };
 
 
+const getAllOrders = async (req, res) => {
+  try {
+    const orders = await Order.find()
+      .populate("buyer", "name phone")
+      .populate("farmer", "name phone")
+      .populate("product", "name images")
+      .populate("deliveryAgent", "name phone")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: orders.length,
+      orders,
+    });
+  } catch (error) {
+    console.error("Admin get orders error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch orders",
+    });
+  }
+};
+
+
 module.exports = {
   getAllUsers,
   updateUserStatus,
+  getAllOrders,
 };
