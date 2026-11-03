@@ -1,4 +1,3 @@
-
 const ModemPay = require("modem-pay").default;
 const Payment = require("../models/Payment");
 const { syncPayment } = require("../services/paymentSyncService.js");
@@ -28,8 +27,15 @@ const webhook = async (req, res) => {
       secret
     );
   } catch (error) {
-    return res.status(400).json({ message: "Invalid webhook signature" });
-  }
+  console.error("ModemPay webhook verification failed:", {
+    name: error.name,
+    message: error.message
+  });
+
+  return res.status(400).json({
+    message: "Invalid webhook signature"
+  });
+}
 
   const eventType = event?.event;
   const paymentIntentId = event?.payload?.payment_intent_id;

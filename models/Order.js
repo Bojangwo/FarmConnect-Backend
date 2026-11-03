@@ -136,6 +136,25 @@ deliveryAssignmentHistory: [
       default: "unpaid",
     },
 
+    
+paymentMethod: {
+  type: String,
+  enum: ["wave", "aps", "cod"],
+  default: null,
+},
+
+paymentReference: {
+  type: String,
+  default: null,
+  trim: true,
+},
+
+paidAt: {
+  type: Date,
+  default: null,
+},
+
+
     deliveryStatus: {
       type: String,
       enum: [

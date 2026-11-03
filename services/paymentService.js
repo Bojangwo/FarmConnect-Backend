@@ -111,11 +111,21 @@ async function createPaymentIntent({ amount }) {
 };
 }
 
+
 async function retrievePaymentIntent(paymentId) {
   const client = getModemPayClient();
 
-  return client.paymentIntents.retrieve(paymentId);
+  const response = await client.paymentIntents.retrieve(paymentId);
+
+  const intent = normalizePaymentIntent(response);
+
+  return {
+    ...intent,
+    id: intent.payment_intent_id || intent.id,
+    amount: Number(intent.amount),
+  };
 }
+
 
 module.exports = {
   createPaymentIntent,

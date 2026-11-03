@@ -133,15 +133,27 @@ if (payment.status !== "pending") {
         throw new Error("Payment changed during synchronization");
       }
 
-      const orderUpdate = await Order.updateOne(
-        {
-          _id: order._id,
-          status: "pending",
-          paymentStatus: "pending"
-        },
-        { $set: { paymentStatus: orderPaymentStatus } },
-        { session }
-      );
+      
+const orderUpdate = await Order.updateOne(
+  {
+    _id: order._id,
+    status: "pending",
+    paymentStatus: "pending"
+  },
+  {
+    $set: {
+      paymentStatus: orderPaymentStatus,
+      ...(newStatus === "successful"
+        ? {
+            paymentReference: payment.providerPaymentId,
+            paidAt: new Date()
+          }
+        : {})
+    }
+  },
+  { session }
+);
+
 
       if (orderUpdate.matchedCount !== 1) {
         throw new Error("Order changed during synchronization");
