@@ -126,7 +126,6 @@ async function retrievePaymentIntent(paymentId) {
   };
 }
 
-
 module.exports = {
   createPaymentIntent,
   retrievePaymentIntent,

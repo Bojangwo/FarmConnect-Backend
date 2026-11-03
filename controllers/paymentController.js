@@ -192,8 +192,75 @@ const verifyPayment = async (req, res) => {
 };
 
 
+const getPendingPayment = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({
+        message: "Invalid order ID",
+      });
+    }
+
+    const order = await Order.findOne({
+      _id: orderId,
+      buyer: req.user.id,
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        message: "Order not found",
+      });
+    }
+
+    const payment = await Payment.findOne({
+      order: order._id,
+      buyer: req.user.id,
+      status: "pending",
+    }).sort({ createdAt: -1 });
+
+    if (!payment) {
+      return res.status(404).json({
+        message: "No pending payment found for this order",
+      });
+    }
+
+    // Recheck the actual payment state with ModemPay.
+    const result = await syncPayment(payment._id);
+
+    
+if (result.paymentStatus !== "pending") {
+      return res.status(409).json({
+        message: "Payment status has changed. Refresh your orders.",
+        paymentStatus: result.paymentStatus,
+      });
+    }
+
+    if (!payment.paymentLink) {
+      return res.status(409).json({
+        message: "No checkout link available for this payment",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Pending payment found",
+      paymentId: payment._id,
+      paymentStatus: "pending",
+      paymentLink: payment.paymentLink,
+    });
+  } catch (error) {
+    console.error("Get pending payment error:", error);
+
+    return res.status(502).json({
+      message: "Unable to retrieve pending payment right now",
+    });
+  }
+};
+
 
 module.exports = {
   initiatePayment,
-  verifyPayment
+  verifyPayment,
+  getPendingPayment,
 };
+

@@ -2,7 +2,8 @@ const express = require("express");
 
 const {
   initiatePayment,
-  verifyPayment
+  verifyPayment,
+  getPendingPayment,
 } = require("../controllers/paymentController");
 
 const protect = require("../middleware/authMiddleware");
@@ -25,5 +26,13 @@ router.get(
   authorizeRoles("buyer"),
   verifyPayment
 );
+
+router.get(
+  "/:orderId/pending",
+  protect,
+  require("../middleware/roleMiddleware")("buyer"),
+  getPendingPayment
+);
+
 
 module.exports = router;

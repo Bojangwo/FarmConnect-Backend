@@ -8,6 +8,7 @@ const {
   updateOrderStatus,
   assignDeliveryAgent,
   updateDeliveryStatus,
+  updateDeliveryLocation,
   getDeliveryHistory,
   confirmDelivery,
 } = require("../controllers/orderController");
@@ -31,6 +32,14 @@ router.patch(
   protect,
   require("../middleware/roleMiddleware")("deliveryAgent"),
   updateDeliveryStatus
+);
+
+
+router.patch(
+  "/:orderId/delivery-location",
+  protect,
+  require("../middleware/roleMiddleware")("deliveryAgent"),
+  updateDeliveryLocation
 );
 
 router.patch(
@@ -64,7 +73,5 @@ router.patch(
   require("../middleware/roleMiddleware")("buyer"),
   confirmDelivery
 );
-
-
 
 module.exports = router;

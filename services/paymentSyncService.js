@@ -42,6 +42,7 @@ async function syncPayment(paymentId) {
   statusType: typeof intent.status
 });
 
+
   const newStatus = statusMap[intent.status];
 
   if (!newStatus) {

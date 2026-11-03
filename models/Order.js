@@ -168,6 +168,37 @@ paidAt: {
       default: "not_assigned",
     },
 
+    
+deliveryTracking: {
+  currentLocation: {
+    latitude: {
+      type: Number,
+      min: -90,
+      max: 90,
+      default: null,
+    },
+
+    longitude: {
+      type: Number,
+      min: -180,
+      max: 180,
+      default: null,
+    },
+
+    accuracy: {
+      type: Number,
+      min: 0,
+      default: null,
+    },
+
+    updatedAt: {
+      type: Date,
+      default: null,
+    },
+  },
+},
+
+
     buyerConfirmedDelivery: {
   type: Boolean,
   default: false,

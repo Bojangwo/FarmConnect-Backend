@@ -610,6 +610,77 @@ const confirmDelivery = async (req, res) => {
 };
 
 
+const updateDeliveryLocation = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { latitude, longitude, accuracy } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({
+        message: "Invalid order ID",
+      });
+    }
+
+    if (
+      typeof latitude !== "number" ||
+      !Number.isFinite(latitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      typeof longitude !== "number" ||
+      !Number.isFinite(longitude) ||
+      longitude < -180 ||
+      longitude > 180 ||
+      (accuracy !== undefined &&
+        (typeof accuracy !== "number" ||
+          !Number.isFinite(accuracy) ||
+          accuracy < 0))
+    ) {
+      return res.status(400).json({
+        message: "Invalid GPS coordinates or accuracy",
+      });
+    }
+
+    const order = await Order.findOneAndUpdate(
+      {
+        _id: orderId,
+        deliveryAgent: req.user.id,
+        status: "ready_for_delivery",
+        deliveryStatus: { $in: ["picked_up", "in_transit"] },
+      },
+      {
+        $set: {
+          "deliveryTracking.currentLocation.latitude": latitude,
+          "deliveryTracking.currentLocation.longitude": longitude,
+          "deliveryTracking.currentLocation.accuracy": accuracy ?? null,
+          "deliveryTracking.currentLocation.updatedAt": new Date(),
+        },
+      },
+      {
+        returnDocument: "after",
+        runValidators: true,
+      }
+    );
+
+    if (!order) {
+      return res.status(404).json({
+        message:
+          "Active delivery not found or not assigned to you",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Delivery location updated successfully",
+      location: order.deliveryTracking.currentLocation,
+    });
+  } catch (error) {
+    console.error("Update delivery location error:", error);
+
+    return res.status(500).json({
+      message: "Server error while updating delivery location",
+    });
+  }
+};
+
 
 module.exports = {
   getMyOrders,
@@ -618,6 +689,7 @@ module.exports = {
   updateOrderStatus,
   assignDeliveryAgent,
   updateDeliveryStatus,
+  updateDeliveryLocation,
   getDeliveryHistory,
   confirmDelivery,
 };
