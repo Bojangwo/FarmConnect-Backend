@@ -4,6 +4,7 @@ const express = require("express");
 const {
   getMyOrders,
   getMyDeliveries,
+  getBuyerDeliveryLocation,
   getOrderById,
   updateOrderStatus,
   assignDeliveryAgent,
@@ -40,6 +41,13 @@ router.patch(
   protect,
   require("../middleware/roleMiddleware")("deliveryAgent"),
   updateDeliveryLocation
+);
+
+router.get(
+  "/:orderId/delivery-location",
+  protect,
+  require("../middleware/roleMiddleware")("buyer"),
+  getBuyerDeliveryLocation
 );
 
 router.patch(

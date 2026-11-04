@@ -197,6 +197,19 @@ const updateOrderStatus = async (req, res) => {
         return;
       }
 
+      // Prevent unpaid online orders from progressing.
+if (
+  status !== "cancelled" &&
+  order.paymentStatus !== "paid"
+) {
+  responseStatus = 400;
+  responseBody = {
+    message:
+      "Payment must be confirmed before this order can be processed",
+  };
+  return;
+}
+
       // Check whether this status change is allowed.
       if (!allowedTransitions[order.status].includes(status)) {
         responseStatus = 400;
@@ -302,6 +315,17 @@ const assignDeliveryAgent = async (req, res) => {
         message: "Order not found",
       });
     }
+
+    // Prevent delivery assignment for unpaid online orders.
+if (
+  order.paymentStatus !== "paid" &&
+  order.paymentMethod !== "cod"
+) {
+  return res.status(400).json({
+    message:
+      "Payment must be confirmed before assigning a delivery agent",
+  });
+}
 
     
 if (order.status !== "ready_for_delivery") {
@@ -681,9 +705,79 @@ const updateDeliveryLocation = async (req, res) => {
   }
 };
 
+// Get the latest delivery location for the buyer's own order
+const getBuyerDeliveryLocation = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({
+        message: "Invalid order ID",
+      });
+    }
+
+    // Only retrieve an order belonging to the logged-in buyer.
+    const order = await Order.findOne({
+      _id: orderId,
+      buyer: req.user.id,
+    }).select(
+      "orderNumber status deliveryStatus deliveryAgent deliveryTracking.currentLocation"
+    );
+
+    if (!order) {
+      return res.status(404).json({
+        message: "Order not found",
+      });
+    }
+
+    // Do not expose the agent's location after delivery ends.
+    if (
+      order.status !== "ready_for_delivery" ||
+      !["picked_up", "in_transit"].includes(order.deliveryStatus) ||
+      !order.deliveryAgent
+    ) {
+      return res.status(200).json({
+        trackingAvailable: false,
+        message: "Live tracking is not available for this delivery",
+      });
+    }
+
+    const location = order.deliveryTracking?.currentLocation;
+
+    if (
+      typeof location?.latitude !== "number" ||
+      typeof location?.longitude !== "number" ||
+      !location?.updatedAt
+    ) {
+      return res.status(200).json({
+        trackingAvailable: false,
+        message: "Waiting for the delivery agent's location",
+      });
+    }
+
+    return res.status(200).json({
+      trackingAvailable: true,
+      orderNumber: order.orderNumber,
+      deliveryStatus: order.deliveryStatus,
+      location: {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        accuracy: location.accuracy,
+        updatedAt: location.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Get buyer delivery location error:", error);
+
+    return res.status(500).json({
+      message: "Server error while fetching delivery location",
+    });
+  }
+};
 
 module.exports = {
   getMyOrders,
+  getBuyerDeliveryLocation,
   getMyDeliveries,
   getOrderById,
   updateOrderStatus,
