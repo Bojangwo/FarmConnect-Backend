@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Order = require("../models/Order");
+const Review = require("../models/Review");
 const Product = require("../models/Product");
 const User = require("../models/User");
 
@@ -20,15 +21,34 @@ const getMyOrders = async (req, res) => {
     }
 
     const orders = await Order.find(filter)
-      .populate("product", "name images price unit")
-      .populate("buyer", "name phone")
-      .populate("farmer", "name phone")
-      .sort({ createdAt: -1 });
+  .populate("product", "name images price unit")
+  .populate("buyer", "name phone")
+  .populate("farmer", "name phone")
+  .sort({ createdAt: -1 });
 
-    return res.status(200).json({
-      count: orders.length,
-      orders,
-    });
+// Get the IDs of all orders belonging to this user.
+const orderIds = orders.map((order) => order._id);
+
+// Find which orders already have reviews.
+const reviews = await Review.find({
+  order: { $in: orderIds },
+}).select("order");
+
+// Create a set of reviewed order IDs for quick lookup.
+const reviewedOrderIds = new Set(
+  reviews.map((review) => String(review.order))
+);
+
+// Add review status to each order.
+const ordersWithReviews = orders.map((order) => ({
+  ...order.toObject(),
+  hasReviewed: reviewedOrderIds.has(String(order._id)),
+}));
+
+return res.status(200).json({
+  count: ordersWithReviews.length,
+  orders: ordersWithReviews,
+});
   } catch (error) {
     console.error("Get my orders error:", error);
 
@@ -317,10 +337,7 @@ const assignDeliveryAgent = async (req, res) => {
     }
 
     // Prevent delivery assignment for unpaid online orders.
-if (
-  order.paymentStatus !== "paid" &&
-  order.paymentMethod !== "cod"
-) {
+if (order.paymentStatus !== "paid") {
   return res.status(400).json({
     message:
       "Payment must be confirmed before assigning a delivery agent",

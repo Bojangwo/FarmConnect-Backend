@@ -139,7 +139,7 @@ deliveryAssignmentHistory: [
     
 paymentMethod: {
   type: String,
-  enum: ["wave", "aps", "cod"],
+  enum: ["wave", "aps"],
   default: null,
 },
 

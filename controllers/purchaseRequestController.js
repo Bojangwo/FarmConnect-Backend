@@ -76,14 +76,19 @@ if (deliveryAddress.trim().length > 300) {
       });
     }
 
-    const buyer = await User.findById(req.user.id);
+  const purchaser = await User.findById(req.user.id);
 
-    if (!buyer) {
-      return res.status(404).json({
-        message: "Buyer account not found",
-      });
-    }
+if (!purchaser) {
+  return res.status(404).json({
+    message: "User account not found",
+  });
+}
 
+if (!["buyer", "farmer"].includes(purchaser.role)) {
+  return res.status(403).json({
+    message: "Only buyers and farmers can submit purchase requests",
+  });
+}
 
     const purchaseRequest = await PurchaseRequest.create({
       buyer: req.user.id,
