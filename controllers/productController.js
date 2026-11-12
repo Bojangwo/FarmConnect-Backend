@@ -413,26 +413,22 @@ if (!isValidCoordinates(parsedLocation.coordinates)) {
 };
 
 // Update product
+
 const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
 
     if (!isValidObjectId(id)) {
-  return res.status(400).json({
-    message: "Invalid product ID",
-  });
-}
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
 
     const product = await Product.findById(id);
 
     if (!product) {
-      return res.status(404).json({
-        message: "Product not found",
-      });
+      return res.status(404).json({ message: "Product not found" });
     }
 
-    // Check ownership
-    if (product.farmer.toString() !== req.user.id) {
+    if (String(product.farmer) !== String(req.user.id)) {
       return res.status(403).json({
         message: "You can only update your own products",
       });
@@ -442,16 +438,73 @@ const updateProduct = async (req, res) => {
       category,
       name,
       description,
-      images,
       price,
       quantity,
       unit,
       location,
       status,
+      keepImages,
     } = req.body;
 
-    // Validate category if changed
-    if (category) {
+    // Existing pictures are kept unless the farmer explicitly
+    // submits a new list of pictures to retain.
+    let retainedImages = [...(product.images || [])];
+
+    if (keepImages !== undefined) {
+      let requestedImages;
+
+      try {
+        requestedImages =
+          typeof keepImages === "string"
+            ? JSON.parse(keepImages)
+            : keepImages;
+      } catch {
+        return res.status(400).json({
+          message: "Invalid retained images list",
+        });
+      }
+
+      if (
+        !Array.isArray(requestedImages) ||
+        !requestedImages.every((image) => typeof image === "string")
+      ) {
+        return res.status(400).json({
+          message: "Retained images must be an array of paths",
+        });
+      }
+
+      // Only allow paths already belonging to this product.
+      const existingPaths = new Set(product.images || []);
+
+      if (
+        new Set(requestedImages).size !== requestedImages.length ||
+        requestedImages.some((path) => !existingPaths.has(path))
+      ) {
+        return res.status(400).json({
+          message: "Invalid product image selection",
+        });
+      }
+
+      retainedImages = requestedImages;
+    }
+
+    const newImagePaths = (req.files || []).map(
+      (file) => `/uploads/${file.filename}`
+    );
+
+    if (retainedImages.length + newImagePaths.length > 5) {
+      return res.status(400).json({
+        message: "A product can have a maximum of 5 images",
+      });
+    }
+
+    if (category !== undefined) {
+      if (!isValidObjectId(category)) {
+        return res.status(400).json({
+          message: "Invalid category ID",
+        });
+      }
+
       const categoryExists = await Category.findOne({
         _id: category,
         status: "active",
@@ -467,77 +520,106 @@ const updateProduct = async (req, res) => {
     }
 
     if (name !== undefined) {
+      if (typeof name !== "string" || !name.trim()) {
+        return res.status(400).json({
+          message: "Product name cannot be empty",
+        });
+      }
       product.name = name.trim();
     }
 
     if (description !== undefined) {
+      if (typeof description !== "string" || !description.trim()) {
+        return res.status(400).json({
+          message: "Description cannot be empty",
+        });
+      }
       product.description = description.trim();
     }
 
-    if (images !== undefined) {
-      product.images = images;
+    if (price !== undefined) {
+      const updatedPrice = Number(price);
+
+      if (
+        price === "" ||
+        !Number.isFinite(updatedPrice) ||
+        updatedPrice < 0
+      ) {
+        return res.status(400).json({
+          message: "Price must be a valid non-negative number",
+        });
+      }
+
+      product.price = updatedPrice;
     }
 
-    if (price !== undefined) {
-  const updatedPrice = Number(price);
-
-  if (!Number.isFinite(updatedPrice) || updatedPrice < 0) {
-    return res.status(400).json({
-      message: "Price must be a valid number greater than or equal to 0",
-    });
-  }
-
-  product.price = updatedPrice;
-}
-
     if (quantity !== undefined) {
-  const updatedQuantity = Number(quantity);
+      const updatedQuantity = Number(quantity);
 
-  if (!Number.isFinite(updatedQuantity) || updatedQuantity < 0) {
-    return res.status(400).json({
-      message: "Quantity must be a valid number greater than or equal to 0",
-    });
-  }
+      if (
+        quantity === "" ||
+        !Number.isFinite(updatedQuantity) ||
+        updatedQuantity < 0
+      ) {
+        return res.status(400).json({
+          message: "Quantity must be a valid non-negative number",
+        });
+      }
 
-  product.quantity = updatedQuantity;
-}
+      product.quantity = updatedQuantity;
+    }
 
     if (unit !== undefined) {
+      if (typeof unit !== "string" || !unit.trim()) {
+        return res.status(400).json({
+          message: "Unit cannot be empty",
+        });
+      }
       product.unit = unit.trim();
     }
 
     if (location !== undefined) {
-  if (!parsedLocation.coordinates) {
-    return res.status(400).json({
-      message: "Location coordinates are required",
-    });
-  }
+      let parsedLocation;
 
-  if (!isValidCoordinates(parsedLocation.coordinates)) {
-    return res.status(400).json({
-      message:
-        "Location coordinates must contain valid longitude and latitude values",
-    });
-  }
+      try {
+        parsedLocation =
+          typeof location === "string"
+            ? JSON.parse(location)
+            : location;
+      } catch {
+        return res.status(400).json({
+          message: "Location must be valid JSON",
+        });
+      }
 
-  product.location = {
-    type: "Point",
-    coordinates: parsedLocation.coordinates,
-    address: parsedLocation.address || "",
-    city: parsedLocation.city || "",
-    region: parsedLocation.region || "",
-  };
-}
+      if (
+        !parsedLocation ||
+        !isValidCoordinates(parsedLocation.coordinates)
+      ) {
+        return res.status(400).json({
+          message: "Valid location coordinates are required",
+        });
+      }
+
+      product.location = {
+        type: "Point",
+        coordinates: parsedLocation.coordinates,
+        address: parsedLocation.address || "",
+        city: parsedLocation.city || "",
+        region: parsedLocation.region || "",
+      };
+    }
 
     if (status !== undefined) {
-  if (!validProductStatuses.includes(status)) {
-    return res.status(400).json({
-      message: "Invalid product status",
-    });
-  }
+      if (!validProductStatuses.includes(status)) {
+        return res.status(400).json({
+          message: "Invalid product status",
+        });
+      }
+      product.status = status;
+    }
 
-  product.status = status;
-}
+    product.images = [...retainedImages, ...newImagePaths];
 
     await product.save();
 
@@ -545,18 +627,19 @@ const updateProduct = async (req, res) => {
       .populate("farmer", "name phone location")
       .populate("category", "name");
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Product updated successfully",
       product: updatedProduct,
     });
   } catch (error) {
-    console.error("Update product error:", error.message);
+    console.error("Update product error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       message: "Server error",
     });
   }
 };
+
 
 // Deactivate product
 const deleteProduct = async (req, res) => {

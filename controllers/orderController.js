@@ -6,14 +6,28 @@ const User = require("../models/User");
 
 
 // Get orders belonging to the logged-in buyer or farmer
+
 const getMyOrders = async (req, res) => {
   try {
+    const userId = req.user.id;
+    const role = req.user.role;
+    const type = req.query.type;
+
     let filter;
 
-    if (req.user.role === "buyer") {
-      filter = { buyer: req.user.id };
-    } else if (req.user.role === "farmer") {
-      filter = { farmer: req.user.id };
+    if (role === "buyer") {
+      filter = { buyer: userId };
+    } else if (role === "farmer") {
+      if (type === "purchases") {
+        filter = { buyer: userId };
+      } else if (type === "sales" || !type) {
+        // Keep existing farmer order pages working.
+        filter = { farmer: userId };
+      } else {
+        return res.status(400).json({
+          message: "Invalid order type. Use purchases or sales.",
+        });
+      }
     } else {
       return res.status(403).json({
         message: "You are not allowed to view these orders",
@@ -21,34 +35,30 @@ const getMyOrders = async (req, res) => {
     }
 
     const orders = await Order.find(filter)
-  .populate("product", "name images price unit")
-  .populate("buyer", "name phone")
-  .populate("farmer", "name phone")
-  .sort({ createdAt: -1 });
+      .populate("product", "name images price unit")
+      .populate("buyer", "name phone")
+      .populate("farmer", "name phone")
+      .sort({ createdAt: -1 });
 
-// Get the IDs of all orders belonging to this user.
-const orderIds = orders.map((order) => order._id);
+    const orderIds = orders.map((order) => order._id);
 
-// Find which orders already have reviews.
-const reviews = await Review.find({
-  order: { $in: orderIds },
-}).select("order");
+    const reviews = await Review.find({
+      order: { $in: orderIds },
+    }).select("order");
 
-// Create a set of reviewed order IDs for quick lookup.
-const reviewedOrderIds = new Set(
-  reviews.map((review) => String(review.order))
-);
+    const reviewedOrderIds = new Set(
+      reviews.map((review) => String(review.order))
+    );
 
-// Add review status to each order.
-const ordersWithReviews = orders.map((order) => ({
-  ...order.toObject(),
-  hasReviewed: reviewedOrderIds.has(String(order._id)),
-}));
+    const ordersWithReviews = orders.map((order) => ({
+      ...order.toObject(),
+      hasReviewed: reviewedOrderIds.has(String(order._id)),
+    }));
 
-return res.status(200).json({
-  count: ordersWithReviews.length,
-  orders: ordersWithReviews,
-});
+    return res.status(200).json({
+      count: ordersWithReviews.length,
+      orders: ordersWithReviews,
+    });
   } catch (error) {
     console.error("Get my orders error:", error);
 
@@ -57,6 +67,7 @@ return res.status(200).json({
     });
   }
 };
+
 
 
 const getMyDeliveries = async (req, res) => {

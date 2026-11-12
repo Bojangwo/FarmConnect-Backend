@@ -1,4 +1,3 @@
-
 const express = require("express");
 
 const {
@@ -16,7 +15,7 @@ const router = express.Router();
 router.post(
   "/",
   protect,
-  authorize("buyer", "farmer"),
+  authorizeRoles("buyer", "farmer"),
   createPurchaseRequest
 );
 

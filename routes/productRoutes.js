@@ -43,6 +43,7 @@ router.put(
   "/:id",
   protect,
   authorizeRoles("farmer"),
+  upload.array("images", 5),
   updateProduct
 );
 

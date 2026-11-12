@@ -15,7 +15,7 @@ const router = express.Router();
 router.post(
   "/:orderId/initiate",
   protect,
-  authorizeRoles("buyer"),
+  authorizeRoles("buyer", "farmer"),
   initiatePayment
 );
 
@@ -23,7 +23,7 @@ router.post(
 router.get(
   "/:paymentId/verify",
   protect,
-  authorizeRoles("buyer"),
+  authorizeRoles("buyer", "farmer"),
   verifyPayment
 );
 

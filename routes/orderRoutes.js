@@ -1,4 +1,3 @@
-
 const express = require("express");
 
 const {
@@ -15,6 +14,7 @@ const {
 } = require("../controllers/orderController");
 
 const protect = require("../middleware/authMiddleware");
+const authorizeRoles = require("../middleware/roleMiddleware");
 
 const router = express.Router();
 
@@ -46,7 +46,7 @@ router.patch(
 router.get(
   "/:orderId/delivery-location",
   protect,
-  require("../middleware/roleMiddleware")("buyer"),
+  authorizeRoles("buyer", "farmer"),
   getBuyerDeliveryLocation
 );
 
@@ -78,7 +78,7 @@ router.get("/:orderId", protect, getOrderById);
 router.patch(
   "/:orderId/confirm-delivery",
   protect,
-  require("../middleware/roleMiddleware")("buyer"),
+  authorizeRoles("buyer", "farmer"),
   confirmDelivery
 );
 
