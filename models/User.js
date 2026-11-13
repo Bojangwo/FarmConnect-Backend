@@ -22,6 +22,38 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+
+    payoutDetails: {
+      provider: {
+        type: String,
+        enum: ["wave", "aps", null],
+        default: null,
+      },
+
+      phoneNumber: {
+        type: String,
+        trim: true,
+        default: null,
+      },
+
+      accountHolderName: {
+        type: String,
+        trim: true,
+        default: null,
+      },
+
+      isVerified: {
+        type: Boolean,
+        default: false,
+      },
+
+      updatedAt: {
+        type: Date,
+        default: null,
+      },
+    },
+
+
     password: {
       type: String,
       required: true,

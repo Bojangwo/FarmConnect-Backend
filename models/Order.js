@@ -92,6 +92,12 @@ deliveryAssignmentHistory: [
       min: 0,
     },
 
+    // Fixed financial snapshot taken at order creation.
+    commissionRate: { type: Number, required: true, default: 1, min: 0, max: 100 },
+    commissionAmount: { type: Number, required: true, default: 0, min: 0 },
+    farmerEarnings: { type: Number, required: true, default: 0, min: 0 },
+    deliveryEarnings: { type: Number, required: true, default: 0, min: 0 },
+
     totalAmount: {
       type: Number,
       required: true,
@@ -216,3 +222,4 @@ buyerConfirmedAt: {
 );
 
 module.exports = mongoose.model("Order", orderSchema);
+

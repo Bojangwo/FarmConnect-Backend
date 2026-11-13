@@ -40,6 +40,11 @@ app.use(
 app.use("/api/payments", paymentRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/admin", adminRoutes);
+app.use(
+  "/api/payout-details",
+  require("./routes/payoutProfileRoutes")
+);
+app.use("/api/earnings", require("./routes/earningsRoutes"));
 
 
 

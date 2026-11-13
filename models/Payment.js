@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 
 const paymentSchema = new mongoose.Schema(
@@ -99,3 +98,4 @@ paymentSchema.index(
 );
 
 module.exports = mongoose.model("Payment", paymentSchema);
+

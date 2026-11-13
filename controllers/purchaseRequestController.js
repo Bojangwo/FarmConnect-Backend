@@ -4,6 +4,7 @@ const PurchaseRequest = require("../models/PurchaseRequest");
 const Product = require("../models/Product");
 const User = require("../models/User");
 const Order = require("../models/Order");
+const PaymentSettings = require("../models/PaymentSettings");
 
 const createPurchaseRequest = async (req, res) => {
   try {
@@ -269,15 +270,56 @@ const respondToPurchaseRequest = async (req, res) => {
         );
       }
 
-      // Calculate the order using the server-side product price.
+    
+      // Retrieve the admin's saved payment settings.
+      const settings = await PaymentSettings.findOne({
+        key: "default",
+      }).session(session);
+
+      if (!settings) {
+        const error = new Error(
+          "Payment settings are not configured. Please contact the admin."
+        );
+        error.statusCode = 503;
+        throw error;
+      }
+
+      const commissionRate = Number(settings.commissionRate);
+      const configuredDeliveryFee = Number(settings.deliveryFee);
+
+      if (
+        !Number.isFinite(commissionRate) ||
+        commissionRate < 0 ||
+        commissionRate > 100 ||
+        !Number.isFinite(configuredDeliveryFee) ||
+        configuredDeliveryFee < 0
+      ) {
+        const error = new Error("Invalid payment settings");
+        error.statusCode = 500;
+        throw error;
+      }
+
+      // Calculate money in bututs to avoid rounding errors.
       const unitPrice = product.price;
-      const subtotal = Number(
-        (requestedQuantity * unitPrice).toFixed(2)
+      const subtotalBututs = Math.round(
+        requestedQuantity * unitPrice * 100
       );
-      const deliveryFee = 0;
-      const totalAmount = Number(
-        (subtotal + deliveryFee).toFixed(2)
+      const deliveryFeeBututs = Math.round(
+        configuredDeliveryFee * 100
       );
+      const commissionBututs = Math.round(
+        (subtotalBututs * commissionRate) / 100
+      );
+
+      const subtotal = subtotalBututs / 100;
+      const deliveryFee = deliveryFeeBututs / 100;
+      const commissionAmount = commissionBututs / 100;
+      const farmerEarnings =
+        (subtotalBututs - commissionBututs) / 100;
+      const deliveryEarnings = deliveryFee;
+      const totalAmount =
+        (subtotalBututs + deliveryFeeBututs) / 100;
+
 
       // Create exactly one order for this purchase request.
       const [order] = await Order.create(
@@ -291,10 +333,16 @@ const respondToPurchaseRequest = async (req, res) => {
             product: purchaseRequest.product,
             purchaseRequest: purchaseRequest._id,
             quantity: requestedQuantity,
-            unitPrice,
-            subtotal,
-            deliveryFee,
-            totalAmount,
+            
+unitPrice,
+subtotal,
+deliveryFee,
+commissionRate,
+commissionAmount,
+farmerEarnings,
+deliveryEarnings,
+totalAmount,
+
             deliveryAddress: purchaseRequest.deliveryAddress,
             currency: "GMD",
             status: "pending",
@@ -361,3 +409,4 @@ module.exports = {
   getFarmerPurchaseRequests,
   respondToPurchaseRequest,
 }; 
+
