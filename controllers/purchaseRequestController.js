@@ -5,6 +5,7 @@ const Product = require("../models/Product");
 const User = require("../models/User");
 const Order = require("../models/Order");
 const PaymentSettings = require("../models/PaymentSettings");
+const createNotification = require("../utils/createNotification");
 
 const createPurchaseRequest = async (req, res) => {
   try {
@@ -107,10 +108,20 @@ if (!["buyer", "farmer"].includes(purchaser.role)) {
       .populate("farmer", "name phone")
       .populate("product", "name price quantity unit images");
 
-    res.status(201).json({
-      message: "Purchase request sent successfully",
-      purchaseRequest: populatedRequest,
-    });
+    
+await createNotification({
+  recipient: existingProduct.farmer,
+  type: "purchase_request",
+  title: "New purchase request",
+  message: `You have received a new request for ${quantity} ${existingProduct.unit} of ${existingProduct.name}.`,
+  link: "/farmer/requests",
+});
+
+return res.status(201).json({
+  message: "Purchase request sent successfully",
+  purchaseRequest: populatedRequest,
+});
+
   } catch (error) {
     console.error(
       "Create purchase request error:",
@@ -380,7 +391,33 @@ totalAmount,
       };
     });
 
-    return res.status(200).json(result);
+    
+const productDetails = await Product.findById(
+  result.request.product
+).select("name");
+
+const productName = productDetails?.name || "your requested product";
+
+if (status === "accepted") {
+  await createNotification({
+    recipient: result.request.buyer,
+    type: "request_accepted",
+    title: "Purchase request accepted",
+    message: `Your request for ${productName} has been accepted. You can now proceed with payment.`,
+    link: "/buyer/orders",
+  });
+} else {
+  await createNotification({
+    recipient: result.request.buyer,
+    type: "request_rejected",
+    title: "Purchase request rejected",
+    message: `Your purchase request for ${productName} was rejected by the farmer.`,
+    link: "/buyer/requests",
+  });
+}
+
+return res.status(200).json(result);
+
   } catch (error) {
     console.error("Respond to purchase request error:", error);
 

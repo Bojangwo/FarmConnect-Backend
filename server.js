@@ -10,6 +10,7 @@ const orderRoutes = require("./routes/orderRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 
 const connectDB = require("./config/db");
@@ -45,6 +46,8 @@ app.use(
   require("./routes/payoutProfileRoutes")
 );
 app.use("/api/earnings", require("./routes/earningsRoutes"));
+ app.use('/api/reports', require('./routes/reportRoutes'));
+ app.use("/api/notifications", notificationRoutes);
 
 
 

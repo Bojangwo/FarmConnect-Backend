@@ -1,21 +1,18 @@
 const express = require("express");
-
 const {
   getAllUsers,
   updateUserStatus,
   getAllOrders,
 } = require("../controllers/adminController");
-
-
 const {
   getAllCategoriesAdmin,
 } = require("../controllers/categoryController");
-
-
 const protect = require("../middleware/authMiddleware");
 const authorizeRoles = require("../middleware/roleMiddleware");
-
 const { getSettings, updateSettings, getFinancialSummary, preparePayouts, markPayoutPaid,verifyPayoutDetails, getPayoutAccounts } = require("../controllers/adminPaymentController");
+const {
+  getAdminReports,
+} = require("../controllers/adminReportController");
 const router = express.Router();
 
 // All admin routes require authentication and admin privileges
@@ -45,6 +42,7 @@ router.patch(
   verifyPayoutDetails
 );
 router.get("/payout-accounts", getPayoutAccounts);
+router.get("/reports", getAdminReports);
 
 module.exports = router;
 
