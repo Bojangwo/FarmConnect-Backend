@@ -92,6 +92,12 @@ if (!["buyer", "farmer"].includes(purchaser.role)) {
   });
 }
 
+if (existingProduct.moderation?.status === "removed") {
+  return res.status(400).json({
+    message: "This product has been removed from the marketplace",
+  });
+}
+
     const purchaseRequest = await PurchaseRequest.create({
       buyer: req.user.id,
       farmer: existingProduct.farmer,
@@ -114,7 +120,7 @@ await createNotification({
   type: "purchase_request",
   title: "New purchase request",
   message: `You have received a new request for ${quantity} ${existingProduct.unit} of ${existingProduct.name}.`,
-  link: "/farmer/requests",
+  link: "/farmer/purchase-requests",
 });
 
 return res.status(201).json({

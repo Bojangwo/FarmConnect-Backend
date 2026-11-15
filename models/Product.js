@@ -93,6 +93,35 @@ const productSchema = new mongoose.Schema(
       ],
       default: "available",
     },
+
+
+moderation: {
+  status: {
+    type: String,
+    enum: ["approved", "removed"],
+    default: "approved",
+  },
+
+  reason: {
+    type: String,
+    trim: true,
+    maxlength: 500,
+    default: "",
+  },
+
+  reviewedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null,
+  },
+
+  reviewedAt: {
+    type: Date,
+    default: null,
+  },
+},
+
+    
   },
   {
     timestamps: true,

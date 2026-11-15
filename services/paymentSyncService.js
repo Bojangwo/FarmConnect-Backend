@@ -1,8 +1,8 @@
-
 const mongoose = require("mongoose");
 const Payment = require("../models/Payment");
 const Order = require("../models/Order");
 const { retrievePaymentIntent } = require("./paymentService");
+const notifyPaymentSuccess = require("../utils/notifyPaymentSuccess");
 
 async function syncPayment(paymentId) {
   if (!mongoose.Types.ObjectId.isValid(paymentId)) {
@@ -185,10 +185,16 @@ const orderUpdate = await Order.updateOne(
     await session.endSession();
   }
 
-  return {
-    paymentStatus: newStatus,
-    orderPaymentStatus
-  };
+  
+if (newStatus === "successful") {
+  await notifyPaymentSuccess(order);
+}
+
+return {
+  paymentStatus: newStatus,
+  orderPaymentStatus,
+};
+
 }
 
 module.exports = { syncPayment };

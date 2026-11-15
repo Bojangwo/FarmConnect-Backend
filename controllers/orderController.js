@@ -3,6 +3,7 @@ const Order = require("../models/Order");
 const Review = require("../models/Review");
 const Product = require("../models/Product");
 const User = require("../models/User");
+const createNotification = require("../utils/createNotification");
 
 
 // Get orders belonging to the logged-in buyer or farmer
@@ -415,6 +416,30 @@ order.deliveryStatus = "assigned";
 
 await order.save();
 
+
+await createNotification({
+  recipient: agent._id,
+  type: "delivery_assigned",
+  title: "New delivery assigned",
+  message: `You have been assigned delivery for order ${order.orderNumber}.`,
+  link: "/delivery/dashboard",
+});
+
+
+if (
+  previousAgentId &&
+  previousAgentId.toString() !== agent._id.toString()
+) {
+  await createNotification({
+    recipient: previousAgentId,
+    type: "delivery_reassigned",
+    title: "Delivery reassigned",
+    message: `Order ${order.orderNumber} has been reassigned to another delivery agent.`,
+    link: "/delivery/dashboard",
+  });
+}
+
+
     return res.status(200).json({
       message: "Delivery agent assigned successfully",
       order,
@@ -529,6 +554,39 @@ const updateDeliveryStatus = async (req, res) => {
     }
 
     await order.save();
+
+
+const deliveryMessages = {
+  picked_up: {
+    title: "Your order has been picked up",
+    message: `Order ${order.orderNumber} has been collected by the delivery agent.`,
+  },
+  in_transit: {
+    title: "Your order is on the way",
+    message: `Order ${order.orderNumber} is now in transit.`,
+  },
+  delivered: {
+    title: "Your order has been delivered",
+    message: `Order ${order.orderNumber} has been marked as delivered. Please confirm receipt.`,
+  },
+  failed: {
+    title: "Delivery unsuccessful",
+    message: `Delivery for order ${order.orderNumber} was unsuccessful.`,
+  },
+};
+
+const notification = deliveryMessages[deliveryStatus];
+
+if (notification) {
+  await createNotification({
+    recipient: order.buyer,
+    type: `delivery_${deliveryStatus}`,
+    title: notification.title,
+    message: notification.message,
+    link: "/buyer/orders",
+  });
+}
+
 
     return res.status(200).json({
       message: "Delivery status updated successfully",
@@ -647,6 +705,26 @@ const confirmDelivery = async (req, res) => {
     order.status = "completed";
 
     await order.save();
+
+
+await createNotification({
+  recipient: order.farmer,
+  type: "delivery_confirmed",
+  title: "Buyer confirmed delivery",
+  message: `The buyer has confirmed receipt of order ${order.orderNumber}.`,
+  link: "/farmer/orders",
+});
+
+if (order.deliveryAgent) {
+  await createNotification({
+    recipient: order.deliveryAgent,
+    type: "delivery_confirmed",
+    title: "Delivery confirmed",
+    message: `The buyer has confirmed receipt of order ${order.orderNumber}.`,
+    link: "/delivery/dashboard",
+  });
+}
+
 
     return res.status(200).json({
       message: "Delivery confirmed successfully",

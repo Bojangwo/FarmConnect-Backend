@@ -13,11 +13,22 @@ const { getSettings, updateSettings, getFinancialSummary, preparePayouts, markPa
 const {
   getAdminReports,
 } = require("../controllers/adminReportController");
+const {
+  getAdminProducts,
+  moderateProduct,
+} = require("../controllers/adminProductController");
+const {
+  getAuditLogs,
+} = require("../controllers/adminAuditController");
+
 const router = express.Router();
 
 // All admin routes require authentication and admin privileges
 router.use(protect);
 router.use(authorizeRoles("admin"));
+router.get("/products", getAdminProducts);
+router.patch("/products/:productId/moderation", moderateProduct);
+router.get("/audit-logs", getAuditLogs);
 
 
 // Get all registered users
@@ -43,6 +54,7 @@ router.patch(
 );
 router.get("/payout-accounts", getPayoutAccounts);
 router.get("/reports", getAdminReports);
+
 
 module.exports = router;
 

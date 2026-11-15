@@ -1,6 +1,6 @@
-
 const User = require("../models/User");
 const Order = require("../models/Order");
+const createAuditLog = require("../utils/createAuditLog");
 
 // Admin: Get all registered users
 const getAllUsers = async (req, res) => {
@@ -64,8 +64,37 @@ const updateUserStatus = async (req, res) => {
       });
     }
 
-    user.status = status;
-    await user.save();
+    const previousStatus = user.status;
+
+if (previousStatus === status) {
+  return res.status(200).json({
+    success: true,
+    message: "User account status is already up to date",
+    user: {
+      _id: user._id,
+      name: user.name,
+      role: user.role,
+      status: user.status,
+    },
+  });
+}
+
+user.status = status;
+await user.save();
+
+await createAuditLog({
+  admin: req.user.id,
+  action: "USER_STATUS_CHANGED",
+  targetType: "User",
+  targetId: user._id,
+  details: {
+    userName: user.name,
+    userRole: user.role,
+    previousStatus,
+    newStatus: status,
+  },
+  ipAddress: req.ip,
+});
 
     res.status(200).json({
       success: true,

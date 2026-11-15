@@ -3,6 +3,7 @@ const PaymentSettings = require("../models/PaymentSettings");
 const Order = require("../models/Order");
 const Payout = require("../models/Payout");
 const User = require("../models/User");
+const createAuditLog = require("../utils/createAuditLog");
 
 const getSettings = async (_req, res) => {
   try {
@@ -11,23 +12,79 @@ const getSettings = async (_req, res) => {
   } catch (e) { return res.status(500).json({ message: "Could not load payment settings" }); }
 };
 
+
 const updateSettings = async (req, res) => {
   try {
     const { commissionRate, deliveryFee } = req.body;
-    if (typeof commissionRate !== "number" || !Number.isFinite(commissionRate) ||
-        commissionRate < 0 || commissionRate > 100 ||
-        typeof deliveryFee !== "number" || !Number.isFinite(deliveryFee) ||
-        deliveryFee < 0 || Math.round(deliveryFee * 100) !== deliveryFee * 100) {
-      return res.status(400).json({ message: "Provide numeric commissionRate (0-100) and deliveryFee (nonnegative, max 2 decimal places)" });
+
+    if (
+      typeof commissionRate !== "number" ||
+      !Number.isFinite(commissionRate) ||
+      commissionRate < 0 ||
+      commissionRate > 100 ||
+      typeof deliveryFee !== "number" ||
+      !Number.isFinite(deliveryFee) ||
+      deliveryFee < 0 ||
+      Math.round(deliveryFee * 100) !== deliveryFee * 100
+    ) {
+      return res.status(400).json({
+        message:
+          "Provide numeric commissionRate (0-100) and deliveryFee (nonnegative, max 2 decimal places)",
+      });
     }
+
+    const previousSettings = await PaymentSettings.findOne({
+      key: "default",
+    }).lean();
+
     const settings = await PaymentSettings.findOneAndUpdate(
       { key: "default" },
-      { $set: { commissionRate, deliveryFee, updatedBy: req.user.id } },
-      { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+      {
+        $set: {
+          commissionRate,
+          deliveryFee,
+          updatedBy: req.user.id,
+        },
+      },
+      {
+        new: true,
+        upsert: true,
+        runValidators: true,
+        setDefaultsOnInsert: true,
+      }
     );
-    return res.json({ message: "Settings saved for future orders", settings });
-  } catch (e) { return res.status(500).json({ message: "Could not update payment settings" }); }
+
+    await createAuditLog({
+      admin: req.user.id,
+      action: "PAYMENT_SETTINGS_UPDATED",
+      targetType: "PaymentSettings",
+      targetId: settings._id,
+      details: {
+        previous: {
+          commissionRate: previousSettings?.commissionRate ?? null,
+          deliveryFee: previousSettings?.deliveryFee ?? null,
+        },
+        updated: {
+          commissionRate: settings.commissionRate,
+          deliveryFee: settings.deliveryFee,
+        },
+      },
+      ipAddress: req.ip,
+    });
+
+    return res.json({
+      message: "Settings saved for future orders",
+      settings,
+    });
+  } catch (error) {
+    console.error("Update payment settings error:", error);
+
+    return res.status(500).json({
+      message: "Could not update payment settings",
+    });
+  }
 };
+
 
 const getFinancialSummary = async (_req, res) => {
   try {
@@ -190,6 +247,32 @@ const markPayoutPaid = async (req, res) => {
       });
     }
 
+
+const order = await Order.findById(updated.order)
+  .select("orderNumber")
+  .lean();
+
+await createAuditLog({
+  admin: req.user.id,
+  action: "PAYOUT_RECORDED",
+  targetType: "Payout",
+  targetId: updated._id,
+  details: {
+    orderId: updated.order,
+    orderNumber: order?.orderNumber || "",
+    recipientId: updated.recipient,
+    recipientType: updated.recipientType,
+    amount: updated.amount,
+    currency: updated.currency,
+    provider,
+    transactionReference: updated.transactionReference,
+    previousStatus: "pending",
+    newStatus: "paid",
+  },
+  ipAddress: req.ip,
+});
+
+
     return res.json({
       message: "External payout recorded successfully",
       payout: updated,
@@ -240,8 +323,27 @@ const verifyPayoutDetails = async (req, res) => {
     }
 
     // Admin must verify account ownership outside FarmConnect.
-    user.payoutDetails.isVerified = true;
-    await user.save();
+   const wasVerified = user.payoutDetails.isVerified === true;
+
+user.payoutDetails.isVerified = true;
+await user.save();
+
+if (!wasVerified) {
+  await createAuditLog({
+    admin: req.user.id,
+    action: "PAYOUT_DETAILS_VERIFIED",
+    targetType: "User",
+    targetId: user._id,
+    details: {
+      recipientName: user.name,
+      recipientRole: user.role,
+      provider: user.payoutDetails.provider,
+      previousVerified: false,
+      newVerified: true,
+    },
+    ipAddress: req.ip,
+  });
+}
 
     return res.json({
       message: "Payout details marked as verified by admin",

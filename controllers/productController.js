@@ -42,9 +42,10 @@ const getProducts = async (req, res) => {
       radius,
     } = req.query;
 
-    const filter = {
-      status: "available",
-    };
+   const filter = {
+  status: "available",
+  "moderation.status": { $ne: "removed" },
+};
 
     let nearQuery = null;
 
@@ -263,6 +264,12 @@ const product = await Product.findById(id)
         message: "Product not found",
       });
     }
+
+    if (product.moderation?.status === "removed") {
+  return res.status(404).json({
+    message: "Product is not available",
+  });
+}
 
     res.status(200).json({
       product,
