@@ -1,6 +1,9 @@
 const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const Category = require("../models/Category");
+const {
+  uploadProductImages,
+} = require("../utils/uploadToCloudinary");
 
 const isValidObjectId = (id) => {
   return mongoose.Types.ObjectId.isValid(id);
@@ -380,9 +383,7 @@ if (!isValidCoordinates(parsedLocation.coordinates)) {
       });
     }
 
-    const imagePaths = req.files
-  ? req.files.map((file) => `/uploads/${file.filename}`)
-  : [];
+   const imagePaths = await uploadProductImages(req.files || []);
     const product = await Product.create({
       farmer: req.user.id,
       category,
@@ -495,15 +496,11 @@ const updateProduct = async (req, res) => {
       retainedImages = requestedImages;
     }
 
-    const newImagePaths = (req.files || []).map(
-      (file) => `/uploads/${file.filename}`
-    );
-
-    if (retainedImages.length + newImagePaths.length > 5) {
-      return res.status(400).json({
-        message: "A product can have a maximum of 5 images",
-      });
-    }
+    if (retainedImages.length + (req.files || []).length > 5) {
+  return res.status(400).json({
+    message: "A product can have a maximum of 5 images",
+  });
+}
 
     if (category !== undefined) {
       if (!isValidObjectId(category)) {
@@ -626,9 +623,11 @@ const updateProduct = async (req, res) => {
       product.status = status;
     }
 
-    product.images = [...retainedImages, ...newImagePaths];
+    const newImagePaths = await uploadProductImages(req.files || []);
 
-    await product.save();
+product.images = [...retainedImages, ...newImagePaths];
+
+await product.save(); 
 
     const updatedProduct = await Product.findById(product._id)
       .populate("farmer", "name phone location")
