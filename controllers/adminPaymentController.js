@@ -8,10 +8,13 @@ const createAuditLog = require("../utils/createAuditLog");
 const getSettings = async (_req, res) => {
   try {
     const settings = await PaymentSettings.findOne({ key: "default" }).lean();
-    return res.json({ settings: settings || { commissionRate: 1, deliveryFee: 0 } });
-  } catch (e) { return res.status(500).json({ message: "Could not load payment settings" }); }
+    return res.json({
+      settings: settings || { commissionRate: 1, deliveryFee: 0 },
+    });
+  } catch (e) {
+    return res.status(500).json({ message: "Could not load payment settings" });
+  }
 };
-
 
 const updateSettings = async (req, res) => {
   try {
@@ -51,7 +54,7 @@ const updateSettings = async (req, res) => {
         upsert: true,
         runValidators: true,
         setDefaultsOnInsert: true,
-      }
+      },
     );
 
     await createAuditLog({
@@ -85,52 +88,116 @@ const updateSettings = async (req, res) => {
   }
 };
 
-
 const getFinancialSummary = async (_req, res) => {
   try {
     const [orders, payouts] = await Promise.all([
-      Order.find({ paymentStatus: "paid" }).select("subtotal deliveryFee totalAmount commissionAmount farmerEarnings deliveryEarnings status").lean(),
-      Payout.find().populate("recipient", "name phone role").populate("order", "orderNumber").sort({ createdAt: -1 }).lean()
+      Order.find({ paymentStatus: "paid" })
+        .select(
+          "subtotal deliveryFee totalAmount commissionAmount farmerEarnings deliveryEarnings status",
+        )
+        .lean(),
+      Payout.find()
+        .populate("recipient", "name phone role")
+        .populate("order", "orderNumber")
+        .sort({ createdAt: -1 })
+        .lean(),
     ]);
-    const sum = key => Math.round(orders.reduce((n, o) => n + (o[key] || 0), 0) * 100) / 100;
-    return res.json({ summary: {
-      paidOrders: orders.length, collectedGross: sum("totalAmount"),
-      commissionGross: sum("commissionAmount"), deliveryFeesGross: sum("deliveryFee"),
-      farmerAllocations: sum("farmerEarnings"), deliveryAllocations: sum("deliveryEarnings"),
-      // Payouts are separate from collection; these figures are not cash balance.
-      payoutsPending: payouts.filter(p => p.status === "pending").reduce((n,p) => n + p.amount,0),
-      payoutsPaid: payouts.filter(p => p.status === "paid").reduce((n,p) => n + p.amount,0)
-    }, payouts });
-  } catch (e) { return res.status(500).json({ message: "Could not load financial summary" }); }
+    const sum = (key) =>
+      Math.round(orders.reduce((n, o) => n + (o[key] || 0), 0) * 100) / 100;
+    return res.json({
+      summary: {
+        paidOrders: orders.length,
+        collectedGross: sum("totalAmount"),
+        commissionGross: sum("commissionAmount"),
+        deliveryFeesGross: sum("deliveryFee"),
+        farmerAllocations: sum("farmerEarnings"),
+        deliveryAllocations: sum("deliveryEarnings"),
+        // Payouts are separate from collection; these figures are not cash balance.
+        payoutsPending: payouts
+          .filter((p) => p.status === "pending")
+          .reduce((n, p) => n + p.amount, 0),
+        payoutsPaid: payouts
+          .filter((p) => p.status === "paid")
+          .reduce((n, p) => n + p.amount, 0),
+      },
+      payouts,
+    });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ message: "Could not load financial summary" });
+  }
 };
 
 const preparePayouts = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.orderId)) return res.status(400).json({ message: "Invalid order ID" });
+    if (!mongoose.Types.ObjectId.isValid(req.params.orderId))
+      return res.status(400).json({ message: "Invalid order ID" });
     const order = await Order.findById(req.params.orderId).lean();
     if (!order) return res.status(404).json({ message: "Order not found" });
-    if (order.paymentStatus !== "paid" || order.status !== "completed" ||
-        order.deliveryStatus !== "delivered" || !order.buyerConfirmedDelivery || !order.deliveryAgent) {
-      return res.status(409).json({ message: "Order must be paid, delivered and buyer-confirmed with an assigned delivery agent" });
+    if (
+      order.paymentStatus !== "paid" ||
+      order.status !== "completed" ||
+      order.deliveryStatus !== "delivered" ||
+      !order.buyerConfirmedDelivery ||
+      !order.deliveryAgent
+    ) {
+      return res
+        .status(409)
+        .json({
+          message:
+            "Order must be paid, delivered and buyer-confirmed with an assigned delivery agent",
+        });
     }
     // Do not silently apply new rates to legacy orders lacking a financial snapshot.
-    if (![order.commissionAmount, order.farmerEarnings, order.deliveryEarnings].every(v => typeof v === "number")) {
-      return res.status(409).json({ message: "Legacy order needs a reviewed financial breakdown before payout" });
+    if (
+      ![
+        order.commissionAmount,
+        order.farmerEarnings,
+        order.deliveryEarnings,
+      ].every((v) => typeof v === "number")
+    ) {
+      return res
+        .status(409)
+        .json({
+          message:
+            "Legacy order needs a reviewed financial breakdown before payout",
+        });
     }
     const entries = [
-      { recipientType: "farmer", recipient: order.farmer, amount: order.farmerEarnings },
-      { recipientType: "deliveryAgent", recipient: order.deliveryAgent, amount: order.deliveryEarnings }
+      {
+        recipientType: "farmer",
+        recipient: order.farmer,
+        amount: order.farmerEarnings,
+      },
+      {
+        recipientType: "deliveryAgent",
+        recipient: order.deliveryAgent,
+        amount: order.deliveryEarnings,
+      },
     ];
     for (const entry of entries) {
-      await Payout.updateOne({ order: order._id, recipientType: entry.recipientType },
-        { $setOnInsert: { order: order._id, ...entry, currency: "GMD", status: "pending" } },
-        { upsert: true });
+      await Payout.updateOne(
+        { order: order._id, recipientType: entry.recipientType },
+        {
+          $setOnInsert: {
+            order: order._id,
+            ...entry,
+            currency: "GMD",
+            status: "pending",
+          },
+        },
+        { upsert: true },
+      );
     }
-    return res.json({ message: "Payouts prepared (not transferred)", payouts: await Payout.find({ order: order._id }) });
-  } catch (e) { return res.status(500).json({ message: "Could not prepare payouts" }); }
+    return res.json({
+      message: "Payouts prepared (not transferred)",
+      payouts: await Payout.find({ order: order._id }),
+    });
+  } catch (e) {
+    return res.status(500).json({ message: "Could not prepare payouts" });
+  }
 };
-
-
 
 const markPayoutPaid = async (req, res) => {
   try {
@@ -179,8 +246,9 @@ const markPayoutPaid = async (req, res) => {
       });
     }
 
-    const recipient = await User.findById(payout.recipient)
-      .select("name role payoutDetails");
+    const recipient = await User.findById(payout.recipient).select(
+      "name role payoutDetails",
+    );
 
     if (!recipient) {
       return res.status(404).json({
@@ -200,8 +268,7 @@ const markPayoutPaid = async (req, res) => {
       .replace(/[\s-]/g, "")
       .replace(/^(?:\+220|220)/, "");
 
-    const normalizedName = String(accountHolderName || "")
-      .trim();
+    const normalizedName = String(accountHolderName || "").trim();
 
     if (
       provider !== details.provider ||
@@ -210,8 +277,7 @@ const markPayoutPaid = async (req, res) => {
         details.accountHolderName.trim().toLowerCase()
     ) {
       return res.status(409).json({
-        message:
-          "Transfer destination does not match verified payout details",
+        message: "Transfer destination does not match verified payout details",
       });
     }
 
@@ -238,7 +304,7 @@ const markPayoutPaid = async (req, res) => {
       {
         new: true,
         runValidators: true,
-      }
+      },
     );
 
     if (!updated) {
@@ -247,31 +313,29 @@ const markPayoutPaid = async (req, res) => {
       });
     }
 
+    const order = await Order.findById(updated.order)
+      .select("orderNumber")
+      .lean();
 
-const order = await Order.findById(updated.order)
-  .select("orderNumber")
-  .lean();
-
-await createAuditLog({
-  admin: req.user.id,
-  action: "PAYOUT_RECORDED",
-  targetType: "Payout",
-  targetId: updated._id,
-  details: {
-    orderId: updated.order,
-    orderNumber: order?.orderNumber || "",
-    recipientId: updated.recipient,
-    recipientType: updated.recipientType,
-    amount: updated.amount,
-    currency: updated.currency,
-    provider,
-    transactionReference: updated.transactionReference,
-    previousStatus: "pending",
-    newStatus: "paid",
-  },
-  ipAddress: req.ip,
-});
-
+    await createAuditLog({
+      admin: req.user.id,
+      action: "PAYOUT_RECORDED",
+      targetType: "Payout",
+      targetId: updated._id,
+      details: {
+        orderId: updated.order,
+        orderNumber: order?.orderNumber || "",
+        recipientId: updated.recipient,
+        recipientType: updated.recipientType,
+        amount: updated.amount,
+        currency: updated.currency,
+        provider,
+        transactionReference: updated.transactionReference,
+        previousStatus: "pending",
+        newStatus: "paid",
+      },
+      ipAddress: req.ip,
+    });
 
     return res.json({
       message: "External payout recorded successfully",
@@ -284,9 +348,6 @@ await createAuditLog({
     });
   }
 };
-
-
-
 
 const verifyPayoutDetails = async (req, res) => {
   try {
@@ -323,27 +384,27 @@ const verifyPayoutDetails = async (req, res) => {
     }
 
     // Admin must verify account ownership outside FarmConnect.
-   const wasVerified = user.payoutDetails.isVerified === true;
+    const wasVerified = user.payoutDetails.isVerified === true;
 
-user.payoutDetails.isVerified = true;
-await user.save();
+    user.payoutDetails.isVerified = true;
+    await user.save();
 
-if (!wasVerified) {
-  await createAuditLog({
-    admin: req.user.id,
-    action: "PAYOUT_DETAILS_VERIFIED",
-    targetType: "User",
-    targetId: user._id,
-    details: {
-      recipientName: user.name,
-      recipientRole: user.role,
-      provider: user.payoutDetails.provider,
-      previousVerified: false,
-      newVerified: true,
-    },
-    ipAddress: req.ip,
-  });
-}
+    if (!wasVerified) {
+      await createAuditLog({
+        admin: req.user.id,
+        action: "PAYOUT_DETAILS_VERIFIED",
+        targetType: "User",
+        targetId: user._id,
+        details: {
+          recipientName: user.name,
+          recipientRole: user.role,
+          provider: user.payoutDetails.provider,
+          previousVerified: false,
+          newVerified: true,
+        },
+        ipAddress: req.ip,
+      });
+    }
 
     return res.json({
       message: "Payout details marked as verified by admin",
@@ -356,7 +417,6 @@ if (!wasVerified) {
     });
   }
 };
-
 
 const getPayoutAccounts = async (req, res) => {
   try {
@@ -374,18 +434,15 @@ const getPayoutAccounts = async (req, res) => {
       role: user.role,
       provider: user.payoutDetails?.provider,
       phoneNumber: user.payoutDetails?.phoneNumber,
-      accountHolderName:
-        user.payoutDetails?.accountHolderName,
-      isVerified:
-        user.payoutDetails?.isVerified === true,
+      accountHolderName: user.payoutDetails?.accountHolderName,
+      isVerified: user.payoutDetails?.isVerified === true,
       updatedAt: user.payoutDetails?.updatedAt,
     }));
 
     return res.json({
       total: accounts.length,
-      pendingVerification: accounts.filter(
-        (account) => !account.isVerified
-      ).length,
+      pendingVerification: accounts.filter((account) => !account.isVerified)
+        .length,
       accounts,
     });
   } catch (error) {
@@ -396,7 +453,6 @@ const getPayoutAccounts = async (req, res) => {
     });
   }
 };
-
 
 module.exports = {
   getSettings,

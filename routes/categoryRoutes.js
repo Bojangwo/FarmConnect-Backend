@@ -16,27 +16,12 @@ const router = express.Router();
 router.get("/", getCategories);
 
 // Admin only - create category
-router.post(
-  "/",
-  protect,
-  authorizeRoles("admin"),
-  createCategory
-);
+router.post("/", protect, authorizeRoles("admin"), createCategory);
 
 // Admin only - update category
-router.put(
-  "/:id",
-  protect,
-  authorizeRoles("admin"),
-  updateCategory
-);
+router.put("/:id", protect, authorizeRoles("admin"), updateCategory);
 
 // Admin only - deactivate category
-router.delete(
-  "/:id",
-  protect,
-  authorizeRoles("admin"),
-  deleteCategory
-);
+router.delete("/:id", protect, authorizeRoles("admin"), deleteCategory);
 
 module.exports = router;

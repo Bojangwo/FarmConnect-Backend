@@ -19,12 +19,7 @@ const router = express.Router();
 router.get("/", getProducts);
 
 // Farmer only - retrieve own products
-router.get(
-  "/my-products",
-  protect,
-  authorizeRoles("farmer"),
-  getMyProducts
-);
+router.get("/my-products", protect, authorizeRoles("farmer"), getMyProducts);
 
 // Public - anyone can view one product
 router.get("/:id", getProductById);
@@ -35,7 +30,7 @@ router.post(
   protect,
   authorizeRoles("farmer"),
   upload.array("images", 5),
-  createProduct
+  createProduct,
 );
 
 // Farmer only - update own product
@@ -44,15 +39,10 @@ router.put(
   protect,
   authorizeRoles("farmer"),
   upload.array("images", 5),
-  updateProduct
+  updateProduct,
 );
 
 // Farmer only - remove own product
-router.delete(
-  "/:id",
-  protect,
-  authorizeRoles("farmer"),
-  deleteProduct
-);
+router.delete("/:id", protect, authorizeRoles("farmer"), deleteProduct);
 
 module.exports = router;

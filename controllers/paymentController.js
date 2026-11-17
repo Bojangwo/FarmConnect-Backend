@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 
 const Order = require("../models/Order");
@@ -47,15 +46,15 @@ const initiatePayment = async (req, res) => {
     }
 
     const successfulPayment = await Payment.exists({
-  order: order._id,
-  status: "successful",
-});
+      order: order._id,
+      status: "successful",
+    });
 
-if (successfulPayment) {
-  return res.status(409).json({
-    message: "This order already has a successful payment",
-  });
-}
+    if (successfulPayment) {
+      return res.status(409).json({
+        message: "This order already has a successful payment",
+      });
+    }
 
     if (
       !Number.isFinite(order.totalAmount) ||
@@ -101,28 +100,28 @@ if (successfulPayment) {
       await payment.save();
 
       const orderUpdate = await Order.updateOne(
-  {
-    _id: order._id,
-    status: "pending",
-    paymentStatus: { $in: ["unpaid", "failed"] },
-  },
-  {
-    $set: { paymentStatus: "pending" },
-  }
-);
+        {
+          _id: order._id,
+          status: "pending",
+          paymentStatus: { $in: ["unpaid", "failed"] },
+        },
+        {
+          $set: { paymentStatus: "pending" },
+        },
+      );
 
-if (orderUpdate.matchedCount !== 1) {
-  console.error(
-    "Payment intent created, but order status could not be updated:",
-    payment._id.toString()
-  );
+      if (orderUpdate.matchedCount !== 1) {
+        console.error(
+          "Payment intent created, but order status could not be updated:",
+          payment._id.toString(),
+        );
 
-  return res.status(409).json({
-    message:
-      "Payment was created, but the order needs reconciliation. Do not initiate another payment.",
-    paymentId: payment._id,
-  });
-}
+        return res.status(409).json({
+          message:
+            "Payment was created, but the order needs reconciliation. Do not initiate another payment.",
+          paymentId: payment._id,
+        });
+      }
 
       return res.status(201).json({
         message: "Payment initiated successfully",
@@ -153,10 +152,7 @@ if (orderUpdate.matchedCount !== 1) {
   }
 };
 
-
-
 const { retrievePaymentIntent } = require("../services/paymentService");
-
 
 const verifyPayment = async (req, res) => {
   try {
@@ -168,7 +164,7 @@ const verifyPayment = async (req, res) => {
 
     const payment = await Payment.findOne({
       _id: paymentId,
-      buyer: req.user.id
+      buyer: req.user.id,
     });
 
     if (!payment) {
@@ -180,17 +176,16 @@ const verifyPayment = async (req, res) => {
     return res.status(200).json({
       message: "Payment synchronized with Modem Pay",
       paymentId: payment._id,
-      ...result
+      ...result,
     });
   } catch (error) {
     console.error("Payment synchronization error:", error.message);
 
     return res.status(502).json({
-      message: "Payment could not be synchronized. Please try again later."
+      message: "Payment could not be synchronized. Please try again later.",
     });
   }
 };
-
 
 const getPendingPayment = async (req, res) => {
   try {
@@ -228,8 +223,7 @@ const getPendingPayment = async (req, res) => {
     // Recheck the actual payment state with ModemPay.
     const result = await syncPayment(payment._id);
 
-    
-if (result.paymentStatus !== "pending") {
+    if (result.paymentStatus !== "pending") {
       return res.status(409).json({
         message: "Payment status has changed. Refresh your orders.",
         paymentStatus: result.paymentStatus,
@@ -257,10 +251,8 @@ if (result.paymentStatus !== "pending") {
   }
 };
 
-
 module.exports = {
   initiatePayment,
   verifyPayment,
   getPendingPayment,
 };
-

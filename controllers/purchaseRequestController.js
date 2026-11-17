@@ -9,12 +9,7 @@ const createNotification = require("../utils/createNotification");
 
 const createPurchaseRequest = async (req, res) => {
   try {
-    const {
-  product,
-  quantityRequested,
-  message,
-  deliveryAddress,
-} = req.body;
+    const { product, quantityRequested, message, deliveryAddress } = req.body;
 
     if (!product || quantityRequested === undefined) {
       return res.status(400).json({
@@ -56,20 +51,17 @@ const createPurchaseRequest = async (req, res) => {
       });
     }
 
-    if (
-  typeof deliveryAddress !== "string" ||
-  !deliveryAddress.trim()
-) {
-  return res.status(400).json({
-    message: "Delivery address is required",
-  });
-}
+    if (typeof deliveryAddress !== "string" || !deliveryAddress.trim()) {
+      return res.status(400).json({
+        message: "Delivery address is required",
+      });
+    }
 
-if (deliveryAddress.trim().length > 300) {
-  return res.status(400).json({
-    message: "Delivery address cannot exceed 300 characters",
-  });
-}
+    if (deliveryAddress.trim().length > 300) {
+      return res.status(400).json({
+        message: "Delivery address cannot exceed 300 characters",
+      });
+    }
 
     // A farmer cannot request their own product
     if (existingProduct.farmer.toString() === req.user.id) {
@@ -78,25 +70,25 @@ if (deliveryAddress.trim().length > 300) {
       });
     }
 
-  const purchaser = await User.findById(req.user.id);
+    const purchaser = await User.findById(req.user.id);
 
-if (!purchaser) {
-  return res.status(404).json({
-    message: "User account not found",
-  });
-}
+    if (!purchaser) {
+      return res.status(404).json({
+        message: "User account not found",
+      });
+    }
 
-if (!["buyer", "farmer"].includes(purchaser.role)) {
-  return res.status(403).json({
-    message: "Only buyers and farmers can submit purchase requests",
-  });
-}
+    if (!["buyer", "farmer"].includes(purchaser.role)) {
+      return res.status(403).json({
+        message: "Only buyers and farmers can submit purchase requests",
+      });
+    }
 
-if (existingProduct.moderation?.status === "removed") {
-  return res.status(400).json({
-    message: "This product has been removed from the marketplace",
-  });
-}
+    if (existingProduct.moderation?.status === "removed") {
+      return res.status(400).json({
+        message: "This product has been removed from the marketplace",
+      });
+    }
 
     const purchaseRequest = await PurchaseRequest.create({
       buyer: req.user.id,
@@ -107,39 +99,31 @@ if (existingProduct.moderation?.status === "removed") {
       deliveryAddress: deliveryAddress.trim(),
     });
 
-    const populatedRequest = await PurchaseRequest.findById(
-      purchaseRequest._id
-    )
+    const populatedRequest = await PurchaseRequest.findById(purchaseRequest._id)
       .populate("buyer", "name phone")
       .populate("farmer", "name phone")
       .populate("product", "name price quantity unit images");
 
-    
-await createNotification({
-  recipient: existingProduct.farmer,
-  type: "purchase_request",
-  title: "New purchase request",
-  message: `You have received a new request for ${quantity} ${existingProduct.unit} of ${existingProduct.name}.`,
-  link: "/farmer/purchase-requests",
-});
+    await createNotification({
+      recipient: existingProduct.farmer,
+      type: "purchase_request",
+      title: "New purchase request",
+      message: `You have received a new request for ${quantity} ${existingProduct.unit} of ${existingProduct.name}.`,
+      link: "/farmer/purchase-requests",
+    });
 
-return res.status(201).json({
-  message: "Purchase request sent successfully",
-  purchaseRequest: populatedRequest,
-});
-
+    return res.status(201).json({
+      message: "Purchase request sent successfully",
+      purchaseRequest: populatedRequest,
+    });
   } catch (error) {
-    console.error(
-      "Create purchase request error:",
-      error.message
-    );
+    console.error("Create purchase request error:", error.message);
 
     res.status(500).json({
       message: "Server error",
     });
   }
 };
-
 
 const getFarmerPurchaseRequests = async (req, res) => {
   try {
@@ -162,7 +146,6 @@ const getFarmerPurchaseRequests = async (req, res) => {
     });
   }
 };
-
 
 const respondToPurchaseRequest = async (req, res) => {
   const { status } = req.body;
@@ -194,7 +177,7 @@ const respondToPurchaseRequest = async (req, res) => {
 
       if (!purchaseRequest) {
         const error = new Error(
-          "Pending purchase request not found or you do not have permission to respond to it"
+          "Pending purchase request not found or you do not have permission to respond to it",
         );
         error.statusCode = 404;
         throw error;
@@ -202,21 +185,18 @@ const respondToPurchaseRequest = async (req, res) => {
 
       // Rejection does not create an order or change stock.
       if (status === "rejected") {
-        const updatedRequest =
-          await PurchaseRequest.findOneAndUpdate(
-            {
-              _id: requestId,
-              farmer: req.user.id,
-              status: "pending",
-            },
-            { $set: { status: "rejected" } },
-            { new: true, session }
-          );
+        const updatedRequest = await PurchaseRequest.findOneAndUpdate(
+          {
+            _id: requestId,
+            farmer: req.user.id,
+            status: "pending",
+          },
+          { $set: { status: "rejected" } },
+          { new: true, session },
+        );
 
         if (!updatedRequest) {
-          const error = new Error(
-            "This request has already been handled"
-          );
+          const error = new Error("This request has already been handled");
           error.statusCode = 409;
           throw error;
         }
@@ -230,9 +210,9 @@ const respondToPurchaseRequest = async (req, res) => {
       }
 
       // Acceptance: load the product.
-      const product = await Product.findById(
-        purchaseRequest.product
-      ).session(session);
+      const product = await Product.findById(purchaseRequest.product).session(
+        session,
+      );
 
       if (!product) {
         const error = new Error("Product not found");
@@ -240,15 +220,14 @@ const respondToPurchaseRequest = async (req, res) => {
         throw error;
       }
 
-      const requestedQuantity =
-        purchaseRequest.quantityRequested;
+      const requestedQuantity = purchaseRequest.quantityRequested;
 
       if (
         product.status !== "available" ||
         product.quantity < requestedQuantity
       ) {
         const error = new Error(
-          "Product is unavailable or has insufficient stock"
+          "Product is unavailable or has insufficient stock",
         );
         error.statusCode = 400;
         throw error;
@@ -267,12 +246,12 @@ const respondToPurchaseRequest = async (req, res) => {
         {
           new: true,
           session,
-        }
+        },
       );
 
       if (!updatedProduct) {
         const error = new Error(
-          "Insufficient stock. Please check the available quantity."
+          "Insufficient stock. Please check the available quantity.",
         );
         error.statusCode = 400;
         throw error;
@@ -283,11 +262,10 @@ const respondToPurchaseRequest = async (req, res) => {
         await Product.updateOne(
           { _id: updatedProduct._id },
           { $set: { status: "out_of_stock" } },
-          { session }
+          { session },
         );
       }
 
-    
       // Retrieve the admin's saved payment settings.
       const settings = await PaymentSettings.findOne({
         key: "default",
@@ -295,7 +273,7 @@ const respondToPurchaseRequest = async (req, res) => {
 
       if (!settings) {
         const error = new Error(
-          "Payment settings are not configured. Please contact the admin."
+          "Payment settings are not configured. Please contact the admin.",
         );
         error.statusCode = 503;
         throw error;
@@ -318,25 +296,18 @@ const respondToPurchaseRequest = async (req, res) => {
 
       // Calculate money in bututs to avoid rounding errors.
       const unitPrice = product.price;
-      const subtotalBututs = Math.round(
-        requestedQuantity * unitPrice * 100
-      );
-      const deliveryFeeBututs = Math.round(
-        configuredDeliveryFee * 100
-      );
+      const subtotalBututs = Math.round(requestedQuantity * unitPrice * 100);
+      const deliveryFeeBututs = Math.round(configuredDeliveryFee * 100);
       const commissionBututs = Math.round(
-        (subtotalBututs * commissionRate) / 100
+        (subtotalBututs * commissionRate) / 100,
       );
 
       const subtotal = subtotalBututs / 100;
       const deliveryFee = deliveryFeeBututs / 100;
       const commissionAmount = commissionBututs / 100;
-      const farmerEarnings =
-        (subtotalBututs - commissionBututs) / 100;
+      const farmerEarnings = (subtotalBututs - commissionBututs) / 100;
       const deliveryEarnings = deliveryFee;
-      const totalAmount =
-        (subtotalBututs + deliveryFeeBututs) / 100;
-
+      const totalAmount = (subtotalBututs + deliveryFeeBututs) / 100;
 
       // Create exactly one order for this purchase request.
       const [order] = await Order.create(
@@ -350,15 +321,15 @@ const respondToPurchaseRequest = async (req, res) => {
             product: purchaseRequest.product,
             purchaseRequest: purchaseRequest._id,
             quantity: requestedQuantity,
-            
-unitPrice,
-subtotal,
-deliveryFee,
-commissionRate,
-commissionAmount,
-farmerEarnings,
-deliveryEarnings,
-totalAmount,
+
+            unitPrice,
+            subtotal,
+            deliveryFee,
+            commissionRate,
+            commissionAmount,
+            farmerEarnings,
+            deliveryEarnings,
+            totalAmount,
 
             deliveryAddress: purchaseRequest.deliveryAddress,
             currency: "GMD",
@@ -367,25 +338,22 @@ totalAmount,
             deliveryStatus: "not_assigned",
           },
         ],
-        { session }
+        { session },
       );
 
       // Change the request to accepted only within the transaction.
-      const updatedRequest =
-        await PurchaseRequest.findOneAndUpdate(
-          {
-            _id: requestId,
-            farmer: req.user.id,
-            status: "pending",
-          },
-          { $set: { status: "accepted" } },
-          { new: true, session }
-        );
+      const updatedRequest = await PurchaseRequest.findOneAndUpdate(
+        {
+          _id: requestId,
+          farmer: req.user.id,
+          status: "pending",
+        },
+        { $set: { status: "accepted" } },
+        { new: true, session },
+      );
 
       if (!updatedRequest) {
-        const error = new Error(
-          "This request has already been handled"
-        );
+        const error = new Error("This request has already been handled");
         error.statusCode = 409;
         throw error;
       }
@@ -397,33 +365,31 @@ totalAmount,
       };
     });
 
-    
-const productDetails = await Product.findById(
-  result.request.product
-).select("name");
+    const productDetails = await Product.findById(
+      result.request.product,
+    ).select("name");
 
-const productName = productDetails?.name || "your requested product";
+    const productName = productDetails?.name || "your requested product";
 
-if (status === "accepted") {
-  await createNotification({
-    recipient: result.request.buyer,
-    type: "request_accepted",
-    title: "Purchase request accepted",
-    message: `Your request for ${productName} has been accepted. You can now proceed with payment.`,
-    link: "/buyer/orders",
-  });
-} else {
-  await createNotification({
-    recipient: result.request.buyer,
-    type: "request_rejected",
-    title: "Purchase request rejected",
-    message: `Your purchase request for ${productName} was rejected by the farmer.`,
-    link: "/buyer/requests",
-  });
-}
+    if (status === "accepted") {
+      await createNotification({
+        recipient: result.request.buyer,
+        type: "request_accepted",
+        title: "Purchase request accepted",
+        message: `Your request for ${productName} has been accepted. You can now proceed with payment.`,
+        link: "/buyer/orders",
+      });
+    } else {
+      await createNotification({
+        recipient: result.request.buyer,
+        type: "request_rejected",
+        title: "Purchase request rejected",
+        message: `Your purchase request for ${productName} was rejected by the farmer.`,
+        link: "/buyer/requests",
+      });
+    }
 
-return res.status(200).json(result);
-
+    return res.status(200).json(result);
   } catch (error) {
     console.error("Respond to purchase request error:", error);
 
@@ -451,5 +417,4 @@ module.exports = {
   createPurchaseRequest,
   getFarmerPurchaseRequests,
   respondToPurchaseRequest,
-}; 
-
+};

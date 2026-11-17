@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 const Notification = require("../models/Notification");
 
@@ -38,7 +37,7 @@ exports.markAsRead = async (req, res) => {
         recipient: req.user.id,
       },
       { isRead: true },
-      { new: true }
+      { new: true },
     );
 
     if (!notification) {
@@ -63,7 +62,7 @@ exports.markAllAsRead = async (req, res) => {
         recipient: req.user.id,
         isRead: false,
       },
-      { $set: { isRead: true } }
+      { $set: { isRead: true } },
     );
 
     res.json({

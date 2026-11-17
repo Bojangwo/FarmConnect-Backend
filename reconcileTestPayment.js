@@ -1,4 +1,3 @@
-
 require("dotenv").config();
 
 const mongoose = require("mongoose");
@@ -34,11 +33,11 @@ async function reconcile() {
     }
 
     if (
-  !["unpaid", "failed"].includes(order.paymentStatus) ||
-  order.status !== "pending"
-) {
-  throw new Error("Order is not eligible for reconciliation");
-}
+      !["unpaid", "failed"].includes(order.paymentStatus) ||
+      order.status !== "pending"
+    ) {
+      throw new Error("Order is not eligible for reconciliation");
+    }
 
     if (
       String(order.buyer) !== String(payment.buyer) ||
@@ -48,9 +47,7 @@ async function reconcile() {
       throw new Error("Local order and payment do not match");
     }
 
-    const intent = await retrievePaymentIntent(
-      PROVIDER_PAYMENT_ID
-    );
+    const intent = await retrievePaymentIntent(PROVIDER_PAYMENT_ID);
 
     const paymentLink = intent?.payment_link || intent?.link;
 
@@ -67,23 +64,23 @@ async function reconcile() {
     }
 
     const successfulPayment = await Payment.exists({
-  order: order._id,
-  status: "successful",
-});
+      order: order._id,
+      status: "successful",
+    });
 
-if (successfulPayment) {
-  throw new Error("Order already has a successful payment");
-}
+    if (successfulPayment) {
+      throw new Error("Order already has a successful payment");
+    }
 
-const otherActivePayment = await Payment.exists({
-  order: order._id,
-  _id: { $ne: payment._id },
-  status: { $in: ["initializing", "pending"] },
-});
+    const otherActivePayment = await Payment.exists({
+      order: order._id,
+      _id: { $ne: payment._id },
+      status: { $in: ["initializing", "pending"] },
+    });
 
-if (otherActivePayment) {
-  throw new Error("Another active payment exists for this order");
-}
+    if (otherActivePayment) {
+      throw new Error("Another active payment exists for this order");
+    }
 
     // Save the existing gateway details only if the
     // local payment is still in its expected state.
@@ -100,7 +97,7 @@ if (otherActivePayment) {
           status: "pending",
         },
       },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedPayment) {
@@ -108,21 +105,21 @@ if (otherActivePayment) {
     }
 
     const orderUpdate = await Order.updateOne(
-  {
-    _id: order._id,
-    paymentStatus: { $in: ["unpaid", "failed"] },
-    status: "pending",
-  },
-  {
-    $set: {
-      paymentStatus: "pending",
-    },
-  }
-);
+      {
+        _id: order._id,
+        paymentStatus: { $in: ["unpaid", "failed"] },
+        status: "pending",
+      },
+      {
+        $set: {
+          paymentStatus: "pending",
+        },
+      },
+    );
 
     if (orderUpdate.matchedCount !== 1) {
       throw new Error(
-        "Payment saved, but order was not updated. Manual review required."
+        "Payment saved, but order was not updated. Manual review required.",
       );
     }
 

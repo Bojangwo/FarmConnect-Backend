@@ -1,4 +1,3 @@
-
 const Payout = require("../models/Payout");
 const User = require("../models/User");
 
@@ -7,9 +6,7 @@ const getMyEarnings = async (req, res) => {
     const userId = req.user.id;
 
     const [user, payouts] = await Promise.all([
-      User.findById(userId)
-        .select("name role payoutDetails")
-        .lean(),
+      User.findById(userId).select("name role payoutDetails").lean(),
 
       Payout.find({ recipient: userId })
         .populate("order", "orderNumber")
@@ -23,8 +20,7 @@ const getMyEarnings = async (req, res) => {
       });
     }
 
-    const round = (value) =>
-      Math.round(value * 100) / 100;
+    const round = (value) => Math.round(value * 100) / 100;
 
     const pending = payouts
       .filter((p) => p.status === "pending")

@@ -1,4 +1,3 @@
-
 const Order = require("../models/Order");
 const Payment = require("../models/Payment");
 const Payout = require("../models/Payout");
@@ -19,13 +18,9 @@ const getAdminReports = async (req, res) => {
       });
     }
 
-    const start = startDate
-      ? new Date(`${startDate}T00:00:00.000Z`)
-      : null;
+    const start = startDate ? new Date(`${startDate}T00:00:00.000Z`) : null;
 
-    const end = endDate
-      ? new Date(`${endDate}T23:59:59.999Z`)
-      : null;
+    const end = endDate ? new Date(`${endDate}T23:59:59.999Z`) : null;
 
     if (
       (startDate && Number.isNaN(start.getTime())) ||
@@ -40,65 +35,52 @@ const getAdminReports = async (req, res) => {
     const inRange = (date) => {
       if (!date) return false;
       const value = new Date(date);
-      return (!start || value >= start) &&
-        (!end || value <= end);
+      return (!start || value >= start) && (!end || value <= end);
     };
 
-    const [orders, payments, payouts, users] =
-      await Promise.all([
-        Order.find()
-          .select(
-            "orderNumber product farmer buyer quantity subtotal " +
+    const [orders, payments, payouts, users] = await Promise.all([
+      Order.find()
+        .select(
+          "orderNumber product farmer buyer quantity subtotal " +
             "deliveryFee totalAmount commissionAmount " +
             "farmerEarnings deliveryEarnings status " +
-            "paymentStatus paidAt createdAt"
-          )
-          .populate("product", "name category")
-          .lean(),
+            "paymentStatus paidAt createdAt",
+        )
+        .populate("product", "name category")
+        .lean(),
 
-        Payment.find({ status: "successful" })
-          .select("order amount paidAt createdAt")
-          .lean(),
+      Payment.find({ status: "successful" })
+        .select("order amount paidAt createdAt")
+        .lean(),
 
-        Payout.find()
-          .select("amount status paidAt createdAt")
-          .lean(),
+      Payout.find().select("amount status paidAt createdAt").lean(),
 
-        User.find()
-          .select("role createdAt")
-          .lean(),
-      ]);
+      User.find().select("role createdAt").lean(),
+    ]);
 
-    const selectedOrders = orders.filter((o) =>
-      inRange(o.createdAt)
-    );
+    const selectedOrders = orders.filter((o) => inRange(o.createdAt));
 
     const paidOrders = orders.filter(
-      (o) =>
-        o.paymentStatus === "paid" &&
-        inRange(o.paidAt || o.createdAt)
+      (o) => o.paymentStatus === "paid" && inRange(o.paidAt || o.createdAt),
     );
 
     const selectedPayments = payments.filter((p) =>
-      inRange(p.paidAt || p.createdAt)
+      inRange(p.paidAt || p.createdAt),
     );
 
     const selectedPayouts = payouts.filter((p) =>
-      inRange(p.status === "paid"
-        ? p.paidAt || p.createdAt
-        : p.createdAt)
+      inRange(p.status === "paid" ? p.paidAt || p.createdAt : p.createdAt),
     );
 
-    const selectedUsers = users.filter((u) =>
-      inRange(u.createdAt)
-    );
+    const selectedUsers = users.filter((u) => inRange(u.createdAt));
 
     const sum = (records, field) =>
-      round(records.reduce(
-        (total, record) =>
-          total + (Number(record[field]) || 0),
-        0
-      ));
+      round(
+        records.reduce(
+          (total, record) => total + (Number(record[field]) || 0),
+          0,
+        ),
+      );
 
     const orderStatuses = {};
     for (const status of [
@@ -109,28 +91,21 @@ const getAdminReports = async (req, res) => {
       "completed",
       "cancelled",
     ]) {
-      orderStatuses[status] =
-        selectedOrders.filter((o) => o.status === status).length;
+      orderStatuses[status] = selectedOrders.filter(
+        (o) => o.status === status,
+      ).length;
     }
 
     const usersByRole = {};
-    for (const role of [
-      "farmer",
-      "buyer",
-      "deliveryAgent",
-      "admin",
-    ]) {
-      usersByRole[role] =
-        selectedUsers.filter((u) => u.role === role).length;
+    for (const role of ["farmer", "buyer", "deliveryAgent", "admin"]) {
+      usersByRole[role] = selectedUsers.filter((u) => u.role === role).length;
     }
 
     const monthlyMap = new Map();
 
     for (const payment of selectedPayments) {
       const date = payment.paidAt || payment.createdAt;
-      const month = new Date(date)
-        .toISOString()
-        .slice(0, 7);
+      const month = new Date(date).toISOString().slice(0, 7);
 
       if (!monthlyMap.has(month)) {
         monthlyMap.set(month, {
@@ -156,7 +131,7 @@ const getAdminReports = async (req, res) => {
 
     for (const order of paidOrders) {
       const productId = String(
-        order.product?._id || order.product || "unknown"
+        order.product?._id || order.product || "unknown",
       );
 
       if (!productMap.has(productId)) {
@@ -201,11 +176,11 @@ const getAdminReports = async (req, res) => {
         deliveryAllocations: sum(paidOrders, "deliveryEarnings"),
         pendingPayouts: sum(
           selectedPayouts.filter((p) => p.status === "pending"),
-          "amount"
+          "amount",
         ),
         recordedPayouts: sum(
           selectedPayouts.filter((p) => p.status === "paid"),
-          "amount"
+          "amount",
         ),
       },
 

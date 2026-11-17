@@ -1,4 +1,3 @@
-
 const dotenv = require("dotenv");
 const bcrypt = require("bcryptjs");
 const mongoose = require("mongoose");
@@ -22,7 +21,7 @@ const createDeliveryAgent = async () => {
       !DELIVERY_AGENT_PASSWORD
     ) {
       throw new Error(
-        "Please set all DELIVERY_AGENT variables in your .env file."
+        "Please set all DELIVERY_AGENT variables in your .env file.",
       );
     }
 
@@ -44,14 +43,11 @@ const createDeliveryAgent = async () => {
       }
 
       throw new Error(
-        "This email belongs to another account. Use a different email."
+        "This email belongs to another account. Use a different email.",
       );
     }
 
-    const hashedPassword = await bcrypt.hash(
-      DELIVERY_AGENT_PASSWORD,
-      10
-    );
+    const hashedPassword = await bcrypt.hash(DELIVERY_AGENT_PASSWORD, 10);
 
     const agent = await User.create({
       name: DELIVERY_AGENT_NAME.trim(),

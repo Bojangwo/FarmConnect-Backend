@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 
 const orderSchema = new mongoose.Schema(
@@ -28,31 +27,29 @@ const orderSchema = new mongoose.Schema(
       default: null,
     },
 
-    
-deliveryAssignmentHistory: [
-  {
-    deliveryAgent: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    assignedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    assignedAt: {
-      type: Date,
-      default: Date.now,
-    },
-    outcome: {
-      type: String,
-      enum: ["assigned", "failed", "reassigned", "delivered"],
-      default: "assigned",
-    },
-  },
-],
-
+    deliveryAssignmentHistory: [
+      {
+        deliveryAgent: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        assignedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        assignedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        outcome: {
+          type: String,
+          enum: ["assigned", "failed", "reassigned", "delivered"],
+          default: "assigned",
+        },
+      },
+    ],
 
     product: {
       type: mongoose.Schema.Types.ObjectId,
@@ -93,7 +90,13 @@ deliveryAssignmentHistory: [
     },
 
     // Fixed financial snapshot taken at order creation.
-    commissionRate: { type: Number, required: true, default: 1, min: 0, max: 100 },
+    commissionRate: {
+      type: Number,
+      required: true,
+      default: 1,
+      min: 0,
+      max: 100,
+    },
     commissionAmount: { type: Number, required: true, default: 0, min: 0 },
     farmerEarnings: { type: Number, required: true, default: 0, min: 0 },
     deliveryEarnings: { type: Number, required: true, default: 0, min: 0 },
@@ -132,34 +135,26 @@ deliveryAssignmentHistory: [
 
     paymentStatus: {
       type: String,
-      enum: [
-        "unpaid",
-        "pending",
-        "paid",
-        "failed",
-        "refunded",
-      ],
+      enum: ["unpaid", "pending", "paid", "failed", "refunded"],
       default: "unpaid",
     },
 
-    
-paymentMethod: {
-  type: String,
-  enum: ["wave", "aps"],
-  default: null,
-},
+    paymentMethod: {
+      type: String,
+      enum: ["wave", "aps"],
+      default: null,
+    },
 
-paymentReference: {
-  type: String,
-  default: null,
-  trim: true,
-},
+    paymentReference: {
+      type: String,
+      default: null,
+      trim: true,
+    },
 
-paidAt: {
-  type: Date,
-  default: null,
-},
-
+    paidAt: {
+      type: Date,
+      default: null,
+    },
 
     deliveryStatus: {
       type: String,
@@ -174,52 +169,48 @@ paidAt: {
       default: "not_assigned",
     },
 
-    
-deliveryTracking: {
-  currentLocation: {
-    latitude: {
-      type: Number,
-      min: -90,
-      max: 90,
-      default: null,
+    deliveryTracking: {
+      currentLocation: {
+        latitude: {
+          type: Number,
+          min: -90,
+          max: 90,
+          default: null,
+        },
+
+        longitude: {
+          type: Number,
+          min: -180,
+          max: 180,
+          default: null,
+        },
+
+        accuracy: {
+          type: Number,
+          min: 0,
+          default: null,
+        },
+
+        updatedAt: {
+          type: Date,
+          default: null,
+        },
+      },
     },
 
-    longitude: {
-      type: Number,
-      min: -180,
-      max: 180,
-      default: null,
+    buyerConfirmedDelivery: {
+      type: Boolean,
+      default: false,
     },
 
-    accuracy: {
-      type: Number,
-      min: 0,
-      default: null,
-    },
-
-    updatedAt: {
+    buyerConfirmedAt: {
       type: Date,
       default: null,
     },
   },
-},
-
-
-    buyerConfirmedDelivery: {
-  type: Boolean,
-  default: false,
-},
-
-buyerConfirmedAt: {
-  type: Date,
-  default: null,
-},
-    
-  },
   {
     timestamps: true,
-  }
+  },
 );
 
 module.exports = mongoose.model("Order", orderSchema);
-

@@ -1,9 +1,7 @@
 const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const Category = require("../models/Category");
-const {
-  uploadProductImages,
-} = require("../utils/uploadToCloudinary");
+const { uploadProductImages } = require("../utils/uploadToCloudinary");
 
 const isValidObjectId = (id) => {
   return mongoose.Types.ObjectId.isValid(id);
@@ -13,7 +11,9 @@ const isValidCoordinates = (coordinates) => {
   return (
     Array.isArray(coordinates) &&
     coordinates.length === 2 &&
-    coordinates.every((value) => typeof value === "number" && Number.isFinite(value)) &&
+    coordinates.every(
+      (value) => typeof value === "number" && Number.isFinite(value),
+    ) &&
     coordinates[0] >= -180 &&
     coordinates[0] <= 180 &&
     coordinates[1] >= -90 &&
@@ -21,12 +21,7 @@ const isValidCoordinates = (coordinates) => {
   );
 };
 
-const validProductStatuses = [
-  "available",
-  "out_of_stock",
-  "sold",
-  "inactive",
-]; 
+const validProductStatuses = ["available", "out_of_stock", "sold", "inactive"];
 
 // Get all available products
 const getProducts = async (req, res) => {
@@ -45,65 +40,69 @@ const getProducts = async (req, res) => {
       radius,
     } = req.query;
 
-   const filter = {
-  status: "available",
-  "moderation.status": { $ne: "removed" },
-};
+    const filter = {
+      status: "available",
+      "moderation.status": { $ne: "removed" },
+    };
 
     let nearQuery = null;
 
-if (
-  latitude !== undefined ||
-  longitude !== undefined ||
-  radius !== undefined
-) {
-  if (
-    latitude === undefined ||
-    longitude === undefined ||
-    radius === undefined
-  ) {
-    return res.status(400).json({
-      message:
-        "Latitude, longitude, and radius are all required for nearby search",
-    });
-  }
+    if (
+      latitude !== undefined ||
+      longitude !== undefined ||
+      radius !== undefined
+    ) {
+      if (
+        latitude === undefined ||
+        longitude === undefined ||
+        radius === undefined
+      ) {
+        return res.status(400).json({
+          message:
+            "Latitude, longitude, and radius are all required for nearby search",
+        });
+      }
 
-  const userLatitude = Number(latitude);
-  const userLongitude = Number(longitude);
-  const searchRadius = Number(radius);
+      const userLatitude = Number(latitude);
+      const userLongitude = Number(longitude);
+      const searchRadius = Number(radius);
 
-  if (!Number.isFinite(userLatitude) || userLatitude < -90 || userLatitude > 90) {
-    return res.status(400).json({
-      message: "Invalid latitude",
-    });
-  }
+      if (
+        !Number.isFinite(userLatitude) ||
+        userLatitude < -90 ||
+        userLatitude > 90
+      ) {
+        return res.status(400).json({
+          message: "Invalid latitude",
+        });
+      }
 
-  if (
-    !Number.isFinite(userLongitude) ||
-    userLongitude < -180 ||
-    userLongitude > 180
-  ) {
-    return res.status(400).json({
-      message: "Invalid longitude",
-    });
-  }
+      if (
+        !Number.isFinite(userLongitude) ||
+        userLongitude < -180 ||
+        userLongitude > 180
+      ) {
+        return res.status(400).json({
+          message: "Invalid longitude",
+        });
+      }
 
-  if (!Number.isFinite(searchRadius) || searchRadius <= 0) {
-    return res.status(400).json({
-      message: "Radius must be greater than 0",
-    });
-  }
+      if (!Number.isFinite(searchRadius) || searchRadius <= 0) {
+        return res.status(400).json({
+          message: "Radius must be greater than 0",
+        });
+      }
 
-  nearQuery = {
-    $near: {
-      $geometry: {
-        type: "Point",
-        coordinates: [userLongitude, userLatitude],
-      },
-      $maxDistance: searchRadius * 1000,
-    },
-  };
-}
+      nearQuery = {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [userLongitude, userLatitude],
+          },
+          $maxDistance: searchRadius * 1000,
+        },
+      };
+    }
 
     // Search by product name
     if (search && search.trim()) {
@@ -192,20 +191,13 @@ if (
     const pageNumber = Number(page);
     const limitNumber = Number(limit);
 
-    if (
-      !Number.isInteger(pageNumber) ||
-      pageNumber < 1
-    ) {
+    if (!Number.isInteger(pageNumber) || pageNumber < 1) {
       return res.status(400).json({
         message: "Page must be a positive integer",
       });
     }
 
-    if (
-      !Number.isInteger(limitNumber) ||
-      limitNumber < 1 ||
-      limitNumber > 50
-    ) {
+    if (!Number.isInteger(limitNumber) || limitNumber < 1 || limitNumber > 50) {
       return res.status(400).json({
         message: "Limit must be between 1 and 50",
       });
@@ -216,8 +208,8 @@ if (
     const totalProducts = await Product.countDocuments(filter);
 
     if (nearQuery) {
-  filter.location = nearQuery;
-}
+      filter.location = nearQuery;
+    }
 
     const products = await Product.find(filter)
       .populate("farmer", "name phone location")
@@ -247,17 +239,15 @@ if (
 // Get a single product
 const getProductById = async (req, res) => {
   try {
-    
     const { id } = req.params;
 
-if (!isValidObjectId(id)) {
-  return res.status(400).json({
-    message: "Invalid product ID",
-  });
-}
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        message: "Invalid product ID",
+      });
+    }
 
-const product = await Product.findById(id)
-
+    const product = await Product.findById(id)
 
       .populate("farmer", "name phone location")
       .populate("category", "name");
@@ -269,10 +259,10 @@ const product = await Product.findById(id)
     }
 
     if (product.moderation?.status === "removed") {
-  return res.status(404).json({
-    message: "Product is not available",
-  });
-}
+      return res.status(404).json({
+        message: "Product is not available",
+      });
+    }
 
     res.status(200).json({
       product,
@@ -289,73 +279,66 @@ const product = await Product.findById(id)
 // Create product
 const createProduct = async (req, res) => {
   try {
-    const {
-  category,
-  name,
-  description,
-  price,
-  quantity,
-  unit,
-  location,
-} = req.body;
-let parsedLocation;
+    const { category, name, description, price, quantity, unit, location } =
+      req.body;
+    let parsedLocation;
 
-try {
-  parsedLocation = JSON.parse(location);
-} catch (error) {
-  return res.status(400).json({
-    message: "Location must be valid JSON",
-  });
-}
+    try {
+      parsedLocation = JSON.parse(location);
+    } catch (error) {
+      return res.status(400).json({
+        message: "Location must be valid JSON",
+      });
+    }
 
     if (
-  !category ||
-  !name ||
-  !description ||
-  price === undefined ||
-  quantity === undefined ||
-  !unit ||
-  !parsedLocation ||
-  !parsedLocation.coordinates
-) {
-  return res.status(400).json({
-    message: "Please provide all required product information",
-  });
-}
+      !category ||
+      !name ||
+      !description ||
+      price === undefined ||
+      quantity === undefined ||
+      !unit ||
+      !parsedLocation ||
+      !parsedLocation.coordinates
+    ) {
+      return res.status(400).json({
+        message: "Please provide all required product information",
+      });
+    }
 
-if (!isValidObjectId(category)) {
-  return res.status(400).json({
-    message: "Invalid category ID",
-  });
-}
+    if (!isValidObjectId(category)) {
+      return res.status(400).json({
+        message: "Invalid category ID",
+      });
+    }
 
-if (!name.trim() || !description.trim() || !unit.trim()) {
-  return res.status(400).json({
-    message: "Name, description, and unit cannot be empty",
-  });
-}
+    if (!name.trim() || !description.trim() || !unit.trim()) {
+      return res.status(400).json({
+        message: "Name, description, and unit cannot be empty",
+      });
+    }
 
-const productPrice = Number(price);
-const productQuantity = Number(quantity);
+    const productPrice = Number(price);
+    const productQuantity = Number(quantity);
 
-if (!Number.isFinite(productPrice) || productPrice < 0) {
-  return res.status(400).json({
-    message: "Price must be a valid number greater than or equal to 0",
-  });
-}
+    if (!Number.isFinite(productPrice) || productPrice < 0) {
+      return res.status(400).json({
+        message: "Price must be a valid number greater than or equal to 0",
+      });
+    }
 
-if (!Number.isFinite(productQuantity) || productQuantity < 0) {
-  return res.status(400).json({
-    message: "Quantity must be a valid number greater than or equal to 0",
-  });
-}
+    if (!Number.isFinite(productQuantity) || productQuantity < 0) {
+      return res.status(400).json({
+        message: "Quantity must be a valid number greater than or equal to 0",
+      });
+    }
 
-if (!isValidCoordinates(parsedLocation.coordinates)) {
-  return res.status(400).json({
-    message:
-      "Location coordinates must contain valid longitude and latitude values",
-  });
-}
+    if (!isValidCoordinates(parsedLocation.coordinates)) {
+      return res.status(400).json({
+        message:
+          "Location coordinates must contain valid longitude and latitude values",
+      });
+    }
 
     // Check category
     const categoryExists = await Category.findOne({
@@ -383,7 +366,7 @@ if (!isValidCoordinates(parsedLocation.coordinates)) {
       });
     }
 
-   const imagePaths = await uploadProductImages(req.files || []);
+    const imagePaths = await uploadProductImages(req.files || []);
     const product = await Product.create({
       farmer: req.user.id,
       category,
@@ -463,9 +446,7 @@ const updateProduct = async (req, res) => {
 
       try {
         requestedImages =
-          typeof keepImages === "string"
-            ? JSON.parse(keepImages)
-            : keepImages;
+          typeof keepImages === "string" ? JSON.parse(keepImages) : keepImages;
       } catch {
         return res.status(400).json({
           message: "Invalid retained images list",
@@ -497,10 +478,10 @@ const updateProduct = async (req, res) => {
     }
 
     if (retainedImages.length + (req.files || []).length > 5) {
-  return res.status(400).json({
-    message: "A product can have a maximum of 5 images",
-  });
-}
+      return res.status(400).json({
+        message: "A product can have a maximum of 5 images",
+      });
+    }
 
     if (category !== undefined) {
       if (!isValidObjectId(category)) {
@@ -544,11 +525,7 @@ const updateProduct = async (req, res) => {
     if (price !== undefined) {
       const updatedPrice = Number(price);
 
-      if (
-        price === "" ||
-        !Number.isFinite(updatedPrice) ||
-        updatedPrice < 0
-      ) {
+      if (price === "" || !Number.isFinite(updatedPrice) || updatedPrice < 0) {
         return res.status(400).json({
           message: "Price must be a valid non-negative number",
         });
@@ -587,19 +564,14 @@ const updateProduct = async (req, res) => {
 
       try {
         parsedLocation =
-          typeof location === "string"
-            ? JSON.parse(location)
-            : location;
+          typeof location === "string" ? JSON.parse(location) : location;
       } catch {
         return res.status(400).json({
           message: "Location must be valid JSON",
         });
       }
 
-      if (
-        !parsedLocation ||
-        !isValidCoordinates(parsedLocation.coordinates)
-      ) {
+      if (!parsedLocation || !isValidCoordinates(parsedLocation.coordinates)) {
         return res.status(400).json({
           message: "Valid location coordinates are required",
         });
@@ -625,9 +597,9 @@ const updateProduct = async (req, res) => {
 
     const newImagePaths = await uploadProductImages(req.files || []);
 
-product.images = [...retainedImages, ...newImagePaths];
+    product.images = [...retainedImages, ...newImagePaths];
 
-await product.save(); 
+    await product.save();
 
     const updatedProduct = await Product.findById(product._id)
       .populate("farmer", "name phone location")
@@ -645,7 +617,6 @@ await product.save();
     });
   }
 };
-
 
 // Deactivate product
 const deleteProduct = async (req, res) => {
@@ -683,7 +654,6 @@ const deleteProduct = async (req, res) => {
   }
 };
 
-
 const getMyProducts = async (req, res) => {
   try {
     const products = await Product.find({
@@ -704,7 +674,6 @@ const getMyProducts = async (req, res) => {
     });
   }
 };
-
 
 module.exports = {
   getProducts,

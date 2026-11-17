@@ -22,7 +22,6 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
-
     payoutDetails: {
       provider: {
         type: String,
@@ -52,7 +51,6 @@ const userSchema = new mongoose.Schema(
         default: null,
       },
     },
-
 
     password: {
       type: String,
@@ -106,13 +104,13 @@ const userSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["active","inactive", "suspended"],
+      enum: ["active", "inactive", "suspended"],
       default: "active",
     },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Geospatial index for future GPS/location searches

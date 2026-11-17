@@ -23,11 +23,11 @@ const createAdmin = async () => {
 
     const adminPassword = process.env.ADMIN_PASSWORD;
 
-if (!adminPassword) {
-  throw new Error("ADMIN_PASSWORD is missing from .env");
-}
+    if (!adminPassword) {
+      throw new Error("ADMIN_PASSWORD is missing from .env");
+    }
 
-const hashedPassword = await bcrypt.hash(adminPassword, 10);
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
     const admin = await User.create({
       name: "System Administrator",

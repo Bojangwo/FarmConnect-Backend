@@ -15,16 +15,15 @@ async function checkPayments() {
         : [];
 
     const matches = intents
-      .filter((intent) =>
-        Number(intent.amount) === 300 &&
-        intent.currency === "GMD"
+      .filter(
+        (intent) => Number(intent.amount) === 300 && intent.currency === "GMD",
       )
       .map((intent) => ({
         id: intent.id,
         amount: intent.amount,
         currency: intent.currency,
         status: intent.status,
-        createdAt: intent.createdAt || intent.created_at
+        createdAt: intent.createdAt || intent.created_at,
       }));
 
     console.log("D300 payment intents:", matches);

@@ -25,43 +25,42 @@ router.get(
   "/my-deliveries",
   protect,
   require("../middleware/roleMiddleware")("deliveryAgent"),
-  getMyDeliveries
+  getMyDeliveries,
 );
 
 router.patch(
   "/:orderId/delivery-status",
   protect,
   require("../middleware/roleMiddleware")("deliveryAgent"),
-  updateDeliveryStatus
+  updateDeliveryStatus,
 );
-
 
 router.patch(
   "/:orderId/delivery-location",
   protect,
   require("../middleware/roleMiddleware")("deliveryAgent"),
-  updateDeliveryLocation
+  updateDeliveryLocation,
 );
 
 router.get(
   "/:orderId/delivery-location",
   protect,
   authorizeRoles("buyer", "farmer"),
-  getBuyerDeliveryLocation
+  getBuyerDeliveryLocation,
 );
 
 router.patch(
   "/:orderId/status",
   protect,
   require("../middleware/roleMiddleware")("farmer"),
-  updateOrderStatus
+  updateOrderStatus,
 );
 
 router.patch(
   "/:orderId/assign-delivery",
   protect,
   require("../middleware/roleMiddleware")("admin"),
-  assignDeliveryAgent
+  assignDeliveryAgent,
 );
 
 // Admin views an order's delivery assignment history
@@ -69,7 +68,7 @@ router.get(
   "/:orderId/delivery-history",
   protect,
   require("../middleware/roleMiddleware")("admin"),
-  getDeliveryHistory
+  getDeliveryHistory,
 );
 
 // View one order's details
@@ -79,7 +78,7 @@ router.patch(
   "/:orderId/confirm-delivery",
   protect,
   authorizeRoles("buyer", "farmer"),
-  confirmDelivery
+  confirmDelivery,
 );
 
 module.exports = router;

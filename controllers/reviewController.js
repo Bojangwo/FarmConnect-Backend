@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 const Review = require("../models/Review");
 const Order = require("../models/Order");
@@ -110,7 +109,7 @@ const getFarmerReviews = async (req, res) => {
           (
             reviews.reduce((sum, review) => sum + review.rating, 0) /
             reviews.length
-          ).toFixed(1)
+          ).toFixed(1),
         )
       : 0;
 

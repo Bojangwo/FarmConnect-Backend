@@ -24,18 +24,18 @@ const webhook = async (req, res) => {
     event = client.webhooks.composeEventDetails(
       req.body.toString("utf8"),
       signature,
-      secret
+      secret,
     );
   } catch (error) {
-  console.error("ModemPay webhook verification failed:", {
-    name: error.name,
-    message: error.message
-  });
+    console.error("ModemPay webhook verification failed:", {
+      name: error.name,
+      message: error.message,
+    });
 
-  return res.status(400).json({
-    message: "Invalid webhook signature"
-  });
-}
+    return res.status(400).json({
+      message: "Invalid webhook signature",
+    });
+  }
 
   const eventType = event?.event;
   const paymentIntentId = event?.payload?.payment_intent_id;
@@ -45,40 +45,35 @@ const webhook = async (req, res) => {
     "charge.succeeded",
     "charge.failed",
     "charge.cancelled",
-    "payment_intent.cancelled"
+    "payment_intent.cancelled",
   ];
 
   if (!relevantEvents.includes(eventType)) {
     return res.status(200).json({
-      message: "Event acknowledged"
+      message: "Event acknowledged",
     });
   }
 
   // Some simulated events may not contain a usable payment ID.
-  if (
-    typeof paymentIntentId !== "string" ||
-    !paymentIntentId.trim()
-  ) {
+  if (typeof paymentIntentId !== "string" || !paymentIntentId.trim()) {
     return res.status(200).json({
-      message: "No payment intent reference; event ignored"
+      message: "No payment intent reference; event ignored",
     });
   }
 
   try {
     const payment = await Payment.findOne({
       provider: "modempay",
-      providerPaymentId: paymentIntentId
+      providerPaymentId: paymentIntentId,
     });
 
     if (!payment) {
-  console.log(
-    "Webhook acknowledged: no matching local payment"
-  );
+      console.log("Webhook acknowledged: no matching local payment");
 
-  return res.status(200).json({
-    message: "No matching local payment; event acknowledged"
-  });
-}
+      return res.status(200).json({
+        message: "No matching local payment; event acknowledged",
+      });
+    }
 
     // Verify the actual payment status directly with Modem Pay.
     // Never mark an order paid from the webhook event alone.
@@ -86,18 +81,18 @@ const webhook = async (req, res) => {
 
     console.log("Webhook payment synchronized:", {
       paymentId: String(payment._id),
-      status: result.paymentStatus
+      status: result.paymentStatus,
     });
 
     return res.status(200).json({
-      message: "Payment synchronized"
+      message: "Payment synchronized",
     });
   } catch (error) {
     console.error("Webhook synchronization failed:", error.message);
 
     // A temporary failure should allow Modem Pay to retry.
     return res.status(500).json({
-      message: "Payment synchronization failed"
+      message: "Payment synchronization failed",
     });
   }
 };

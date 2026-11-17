@@ -60,8 +60,7 @@ const moderateProduct = async (req, res) => {
       });
     }
 
-    const currentlyRemoved =
-      product.moderation?.status === "removed";
+    const currentlyRemoved = product.moderation?.status === "removed";
 
     if (
       (action === "remove" && currentlyRemoved) ||
@@ -82,32 +81,23 @@ const moderateProduct = async (req, res) => {
     await product.save();
 
     await createAuditLog({
-  admin: req.user.id,
-  action:
-    action === "remove"
-      ? "PRODUCT_REMOVED"
-      : "PRODUCT_RESTORED",
-  targetType: "Product",
-  targetId: product._id,
-  details: {
-    productName: product.name,
-    farmerId: product.farmer,
-    previousModerationStatus: currentlyRemoved
-      ? "removed"
-      : "approved",
-    newModerationStatus:
-      action === "remove" ? "removed" : "approved",
-    reason: action === "remove" ? reason.trim() : "",
-  },
-  ipAddress: req.ip,
-});
+      admin: req.user.id,
+      action: action === "remove" ? "PRODUCT_REMOVED" : "PRODUCT_RESTORED",
+      targetType: "Product",
+      targetId: product._id,
+      details: {
+        productName: product.name,
+        farmerId: product.farmer,
+        previousModerationStatus: currentlyRemoved ? "removed" : "approved",
+        newModerationStatus: action === "remove" ? "removed" : "approved",
+        reason: action === "remove" ? reason.trim() : "",
+      },
+      ipAddress: req.ip,
+    });
 
     await createNotification({
       recipient: product.farmer,
-      type:
-        action === "remove"
-          ? "product_removed"
-          : "product_restored",
+      type: action === "remove" ? "product_removed" : "product_restored",
       title:
         action === "remove"
           ? "Product listing removed"

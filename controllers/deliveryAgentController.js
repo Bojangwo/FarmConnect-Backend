@@ -1,4 +1,3 @@
-
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 
@@ -89,8 +88,6 @@ const getDeliveryAgents = async (req, res) => {
   }
 };
 
-
-
 const mongoose = require("mongoose");
 
 const updateDeliveryAgentStatus = async (req, res) => {
@@ -143,7 +140,6 @@ const updateDeliveryAgentStatus = async (req, res) => {
     });
   }
 };
-
 
 module.exports = {
   createDeliveryAgent,

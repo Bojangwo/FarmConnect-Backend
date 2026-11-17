@@ -4,14 +4,7 @@ const User = require("../models/User");
 
 const registerUser = async (req, res) => {
   try {
-    const {
-      name,
-      email,
-      phone,
-      password,
-      role,
-      location,
-    } = req.body;
+    const { name, email, phone, password, role, location } = req.body;
 
     // Check required fields
     if (
@@ -92,7 +85,6 @@ const registerUser = async (req, res) => {
   }
 };
 
-
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -113,7 +105,6 @@ const loginUser = async (req, res) => {
       });
     }
 
-    
     // Check whether the account is active
     if (user.status !== "active") {
       return res.status(403).json({
@@ -122,12 +113,8 @@ const loginUser = async (req, res) => {
       });
     }
 
-
     // Compare password with hashed password
-    const isPasswordCorrect = await bcrypt.compare(
-      password,
-      user.password
-    );
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
 
     if (!isPasswordCorrect) {
       return res.status(401).json({
@@ -144,7 +131,7 @@ const loginUser = async (req, res) => {
       process.env.JWT_SECRET,
       {
         expiresIn: "1d",
-      }
+      },
     );
 
     // Send response
@@ -173,4 +160,3 @@ module.exports = {
   registerUser,
   loginUser,
 };
-

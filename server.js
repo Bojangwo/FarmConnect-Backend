@@ -23,7 +23,7 @@ connectDB();
 
 // Middleware
 app.use(cors());
-app.use("/api/payments/webhook",require("./routes/paymentWebhookRoutes"));
+app.use("/api/payments/webhook", require("./routes/paymentWebhookRoutes"));
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 app.use("/api/auth", authRoutes);
@@ -32,27 +32,19 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/purchase-requests", purchaseRequestRoutes);
 app.use("/api/orders", orderRoutes);
-app.use(
-  "/api/delivery-agents",
-  require("./routes/deliveryAgentRoutes")
-);
+app.use("/api/delivery-agents", require("./routes/deliveryAgentRoutes"));
 app.use("/api/payments", paymentRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/admin", adminRoutes);
-app.use(
-  "/api/payout-details",
-  require("./routes/payoutProfileRoutes")
-);
+app.use("/api/payout-details", require("./routes/payoutProfileRoutes"));
 app.use("/api/earnings", require("./routes/earningsRoutes"));
- app.use('/api/reports', require('./routes/reportRoutes'));
- app.use("/api/notifications", notificationRoutes);
-
-
+app.use("/api/reports", require("./routes/reportRoutes"));
+app.use("/api/notifications", notificationRoutes);
 
 // Test route
 app.get("/", (req, res) => {
   res.json({
-    message: "Farmer-Buyer Marketplace API is running"
+    message: "Farmer-Buyer Marketplace API is running",
   });
 });
 

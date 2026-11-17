@@ -16,7 +16,7 @@ router.post(
   "/:orderId/initiate",
   protect,
   authorizeRoles("buyer", "farmer"),
-  initiatePayment
+  initiatePayment,
 );
 
 // Only authenticated buyers can verify their payments
@@ -24,15 +24,14 @@ router.get(
   "/:paymentId/verify",
   protect,
   authorizeRoles("buyer", "farmer"),
-  verifyPayment
+  verifyPayment,
 );
 
 router.get(
   "/:orderId/pending",
   protect,
   require("../middleware/roleMiddleware")("buyer"),
-  getPendingPayment
+  getPendingPayment,
 );
-
 
 module.exports = router;

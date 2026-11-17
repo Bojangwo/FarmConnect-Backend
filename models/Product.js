@@ -85,47 +85,39 @@ const productSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: [
-        "available",
-        "out_of_stock",
-        "sold",
-        "inactive",
-      ],
+      enum: ["available", "out_of_stock", "sold", "inactive"],
       default: "available",
     },
 
+    moderation: {
+      status: {
+        type: String,
+        enum: ["approved", "removed"],
+        default: "approved",
+      },
 
-moderation: {
-  status: {
-    type: String,
-    enum: ["approved", "removed"],
-    default: "approved",
-  },
+      reason: {
+        type: String,
+        trim: true,
+        maxlength: 500,
+        default: "",
+      },
 
-  reason: {
-    type: String,
-    trim: true,
-    maxlength: 500,
-    default: "",
-  },
+      reviewedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
 
-  reviewedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    default: null,
-  },
-
-  reviewedAt: {
-    type: Date,
-    default: null,
-  },
-},
-
-    
+      reviewedAt: {
+        type: Date,
+        default: null,
+      },
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Geospatial index

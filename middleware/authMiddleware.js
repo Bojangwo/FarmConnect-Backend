@@ -1,4 +1,3 @@
-
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
@@ -19,9 +18,7 @@ const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Get current user from MongoDB
-    const user = await User.findById(decoded.id).select(
-      "_id role status"
-    );
+    const user = await User.findById(decoded.id).select("_id role status");
 
     // Check if the user still exists
     if (!user) {
@@ -33,7 +30,8 @@ const protect = async (req, res, next) => {
     // Block inactive or suspended accounts
     if (user.status !== "active") {
       return res.status(403).json({
-        message: "Your account is inactive or suspended. Please contact the administrator.",
+        message:
+          "Your account is inactive or suspended. Please contact the administrator.",
       });
     }
 
@@ -46,11 +44,7 @@ const protect = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error(
-      "Authentication Error:",
-      error.name,
-      error.message
-    );
+    console.error("Authentication Error:", error.name, error.message);
 
     return res.status(401).json({
       message: "Not authorized. Invalid or expired token.",

@@ -5,9 +5,7 @@ const createAuditLog = require("../utils/createAuditLog");
 // Admin: Get all registered users
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find()
-      .select("-password")
-      .sort({ createdAt: -1 });
+    const users = await User.find().select("-password").sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -23,8 +21,6 @@ const getAllUsers = async (req, res) => {
     });
   }
 };
-
-
 
 const updateUserStatus = async (req, res) => {
   try {
@@ -66,35 +62,35 @@ const updateUserStatus = async (req, res) => {
 
     const previousStatus = user.status;
 
-if (previousStatus === status) {
-  return res.status(200).json({
-    success: true,
-    message: "User account status is already up to date",
-    user: {
-      _id: user._id,
-      name: user.name,
-      role: user.role,
-      status: user.status,
-    },
-  });
-}
+    if (previousStatus === status) {
+      return res.status(200).json({
+        success: true,
+        message: "User account status is already up to date",
+        user: {
+          _id: user._id,
+          name: user.name,
+          role: user.role,
+          status: user.status,
+        },
+      });
+    }
 
-user.status = status;
-await user.save();
+    user.status = status;
+    await user.save();
 
-await createAuditLog({
-  admin: req.user.id,
-  action: "USER_STATUS_CHANGED",
-  targetType: "User",
-  targetId: user._id,
-  details: {
-    userName: user.name,
-    userRole: user.role,
-    previousStatus,
-    newStatus: status,
-  },
-  ipAddress: req.ip,
-});
+    await createAuditLog({
+      admin: req.user.id,
+      action: "USER_STATUS_CHANGED",
+      targetType: "User",
+      targetId: user._id,
+      details: {
+        userName: user.name,
+        userRole: user.role,
+        previousStatus,
+        newStatus: status,
+      },
+      ipAddress: req.ip,
+    });
 
     res.status(200).json({
       success: true,
@@ -115,7 +111,6 @@ await createAuditLog({
     });
   }
 };
-
 
 const getAllOrders = async (req, res) => {
   try {
@@ -140,7 +135,6 @@ const getAllOrders = async (req, res) => {
     });
   }
 };
-
 
 module.exports = {
   getAllUsers,

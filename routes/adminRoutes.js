@@ -4,22 +4,24 @@ const {
   updateUserStatus,
   getAllOrders,
 } = require("../controllers/adminController");
-const {
-  getAllCategoriesAdmin,
-} = require("../controllers/categoryController");
+const { getAllCategoriesAdmin } = require("../controllers/categoryController");
 const protect = require("../middleware/authMiddleware");
 const authorizeRoles = require("../middleware/roleMiddleware");
-const { getSettings, updateSettings, getFinancialSummary, preparePayouts, markPayoutPaid,verifyPayoutDetails, getPayoutAccounts } = require("../controllers/adminPaymentController");
 const {
-  getAdminReports,
-} = require("../controllers/adminReportController");
+  getSettings,
+  updateSettings,
+  getFinancialSummary,
+  preparePayouts,
+  markPayoutPaid,
+  verifyPayoutDetails,
+  getPayoutAccounts,
+} = require("../controllers/adminPaymentController");
+const { getAdminReports } = require("../controllers/adminReportController");
 const {
   getAdminProducts,
   moderateProduct,
 } = require("../controllers/adminProductController");
-const {
-  getAuditLogs,
-} = require("../controllers/adminAuditController");
+const { getAuditLogs } = require("../controllers/adminAuditController");
 
 const router = express.Router();
 
@@ -30,12 +32,10 @@ router.get("/products", getAdminProducts);
 router.patch("/products/:productId/moderation", moderateProduct);
 router.get("/audit-logs", getAuditLogs);
 
-
 // Get all registered users
 router.get("/users", getAllUsers);
 
 router.get("/orders", getAllOrders);
-
 
 // Get all categories (admin view)
 router.get("/categories", getAllCategoriesAdmin);
@@ -48,13 +48,8 @@ router.patch("/payment-settings", updateSettings);
 router.get("/finances", getFinancialSummary);
 router.post("/orders/:orderId/prepare-payouts", preparePayouts);
 router.patch("/payouts/:payoutId/mark-paid", markPayoutPaid);
-router.patch(
-  "/users/:userId/verify-payout",
-  verifyPayoutDetails
-);
+router.patch("/users/:userId/verify-payout", verifyPayoutDetails);
 router.get("/payout-accounts", getPayoutAccounts);
 router.get("/reports", getAdminReports);
 
-
 module.exports = router;
-

@@ -1,4 +1,3 @@
-
 const AuditLog = require("../models/AuditLog");
 
 const getAuditLogs = async (req, res) => {

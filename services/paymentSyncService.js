@@ -27,21 +27,20 @@ async function syncPayment(paymentId) {
   }
 
   const statusMap = {
-  initialized: "pending",
-  requires_payment_method: "pending",
-  processing: "pending",
-  successful: "successful",
-  failed: "failed",
-  cancelled: "cancelled",
-  expired: "failed"
-};
+    initialized: "pending",
+    requires_payment_method: "pending",
+    processing: "pending",
+    successful: "successful",
+    failed: "failed",
+    cancelled: "cancelled",
+    expired: "failed",
+  };
 
   console.log("Modem Pay payment status:", {
-  paymentId: payment.providerPaymentId,
-  status: intent.status,
-  statusType: typeof intent.status
-});
-
+    paymentId: payment.providerPaymentId,
+    status: intent.status,
+    statusType: typeof intent.status,
+  });
 
   const newStatus = statusMap[intent.status];
 
@@ -62,41 +61,37 @@ async function syncPayment(paymentId) {
 
   // Never downgrade a successful payment.
   if (payment.status === "successful" || order.paymentStatus === "paid") {
-  if (
-    payment.status !== "successful" ||
-    order.paymentStatus !== "paid" ||
-    newStatus !== "successful"
-  ) {
-    throw new Error(
-      "Payment and order require manual reconciliation"
-    );
-  }
-
-  return {
-    paymentStatus: "successful",
-    orderPaymentStatus: "paid"
-  };
-}
-
-  // Already processed attempts must not change the order again.
-if (payment.status !== "pending") {
-  if (
-    ["failed", "cancelled", "refunded"].includes(payment.status)
-  ) {
-    if (newStatus === "successful") {
-      throw new Error(
-        "Provider reports success for a closed payment. Manual reconciliation required."
-      );
+    if (
+      payment.status !== "successful" ||
+      order.paymentStatus !== "paid" ||
+      newStatus !== "successful"
+    ) {
+      throw new Error("Payment and order require manual reconciliation");
     }
 
     return {
-      paymentStatus: payment.status,
-      orderPaymentStatus: order.paymentStatus
+      paymentStatus: "successful",
+      orderPaymentStatus: "paid",
     };
   }
 
-  throw new Error("Payment is not eligible for synchronization");
-}
+  // Already processed attempts must not change the order again.
+  if (payment.status !== "pending") {
+    if (["failed", "cancelled", "refunded"].includes(payment.status)) {
+      if (newStatus === "successful") {
+        throw new Error(
+          "Provider reports success for a closed payment. Manual reconciliation required.",
+        );
+      }
+
+      return {
+        paymentStatus: payment.status,
+        orderPaymentStatus: order.paymentStatus,
+      };
+    }
+
+    throw new Error("Payment is not eligible for synchronization");
+  }
 
   // Avoid silently changing completed or cancelled orders.
   if (order.status !== "pending" || order.paymentStatus !== "pending") {
@@ -107,12 +102,11 @@ if (payment.status !== "pending") {
   if (newStatus === "pending") {
     return {
       paymentStatus: payment.status,
-      orderPaymentStatus: order.paymentStatus
+      orderPaymentStatus: order.paymentStatus,
     };
   }
 
-  const orderPaymentStatus =
-    newStatus === "successful" ? "paid" : "failed";
+  const orderPaymentStatus = newStatus === "successful" ? "paid" : "failed";
 
   // Use a transaction so payment and order change together.
   const session = await mongoose.startSession();
@@ -124,43 +118,41 @@ if (payment.status !== "pending") {
         {
           $set: {
             status: newStatus,
-            ...(newStatus === "successful" ? { paidAt: new Date() } : {})
-          }
+            ...(newStatus === "successful" ? { paidAt: new Date() } : {}),
+          },
         },
-        { session }
+        { session },
       );
 
       if (paymentUpdate.matchedCount !== 1) {
         throw new Error("Payment changed during synchronization");
       }
 
-      
-const orderUpdate = await Order.updateOne(
-  {
-    _id: order._id,
-    status: "pending",
-    paymentStatus: "pending"
-  },
-  {
-    $set: {
-      paymentStatus: orderPaymentStatus,
-      ...(newStatus === "successful"
-        ? {
-            paymentReference: payment.providerPaymentId,
-            paidAt: new Date()
-          }
-        : {})
-    }
-  },
-  { session }
-);
-
+      const orderUpdate = await Order.updateOne(
+        {
+          _id: order._id,
+          status: "pending",
+          paymentStatus: "pending",
+        },
+        {
+          $set: {
+            paymentStatus: orderPaymentStatus,
+            ...(newStatus === "successful"
+              ? {
+                  paymentReference: payment.providerPaymentId,
+                  paidAt: new Date(),
+                }
+              : {}),
+          },
+        },
+        { session },
+      );
 
       if (orderUpdate.matchedCount !== 1) {
         throw new Error("Order changed during synchronization");
       }
     });
-    } catch (error) {
+  } catch (error) {
     // Another webhook may have completed the payment update first.
     // Re-read the database rather than assuming synchronization failed.
     const latestPayment = await Payment.findById(payment._id);
@@ -175,7 +167,7 @@ const orderUpdate = await Order.updateOne(
     ) {
       return {
         paymentStatus: latestPayment.status,
-        orderPaymentStatus: latestOrder.paymentStatus
+        orderPaymentStatus: latestOrder.paymentStatus,
       };
     }
 
@@ -185,16 +177,14 @@ const orderUpdate = await Order.updateOne(
     await session.endSession();
   }
 
-  
-if (newStatus === "successful") {
-  await notifyPaymentSuccess(order);
-}
+  if (newStatus === "successful") {
+    await notifyPaymentSuccess(order);
+  }
 
-return {
-  paymentStatus: newStatus,
-  orderPaymentStatus,
-};
-
+  return {
+    paymentStatus: newStatus,
+    orderPaymentStatus,
+  };
 }
 
 module.exports = { syncPayment };

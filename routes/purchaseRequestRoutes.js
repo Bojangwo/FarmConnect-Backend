@@ -16,7 +16,7 @@ router.post(
   "/",
   protect,
   authorizeRoles("buyer", "farmer"),
-  createPurchaseRequest
+  createPurchaseRequest,
 );
 
 // Farmers can view requests sent to them
@@ -24,14 +24,14 @@ router.get(
   "/farmer",
   protect,
   authorizeRoles("farmer"),
-  getFarmerPurchaseRequests
+  getFarmerPurchaseRequests,
 );
 
 router.patch(
   "/:requestId/respond",
   protect,
   authorizeRoles("farmer"),
-  respondToPurchaseRequest
+  respondToPurchaseRequest,
 );
 
 module.exports = router;

@@ -1,12 +1,9 @@
-
 const express = require("express");
 
 const protect = require("../middleware/authMiddleware");
 const authorizeRoles = require("../middleware/roleMiddleware");
 
-const {
-  getMyEarnings,
-} = require("../controllers/earningsController");
+const { getMyEarnings } = require("../controllers/earningsController");
 
 const router = express.Router();
 

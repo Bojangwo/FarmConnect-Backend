@@ -1,4 +1,3 @@
-
 const cloudinary = require("../config/cloudinary");
 
 const uploadToCloudinary = (file) => {
@@ -14,13 +13,11 @@ const uploadToCloudinary = (file) => {
         }
 
         if (!result?.secure_url) {
-          return reject(
-            new Error("Cloudinary did not return an image URL")
-          );
+          return reject(new Error("Cloudinary did not return an image URL"));
         }
 
         resolve(result.secure_url);
-      }
+      },
     );
 
     stream.end(file.buffer);

@@ -3,10 +3,10 @@ const mongoose = require("mongoose");
 const paymentSchema = new mongoose.Schema(
   {
     order: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "Order",
-  required: true,
-},
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order",
+      required: true,
+    },
 
     buyer: {
       type: mongoose.Schema.Types.ObjectId,
@@ -35,17 +35,17 @@ const paymentSchema = new mongoose.Schema(
     },
 
     status: {
-  type: String,
-  enum: [
-    "initializing",
-    "pending",
-    "successful",
-    "failed",
-    "cancelled",
-    "refunded",
-  ],
-  default: "initializing",
-},
+      type: String,
+      enum: [
+        "initializing",
+        "pending",
+        "successful",
+        "failed",
+        "cancelled",
+        "refunded",
+      ],
+      default: "initializing",
+    },
 
     providerPaymentId: {
       type: String,
@@ -69,7 +69,7 @@ const paymentSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Avoid associating the same provider payment
@@ -81,7 +81,7 @@ paymentSchema.index(
     partialFilterExpression: {
       providerPaymentId: { $type: "string" },
     },
-  }
+  },
 );
 
 // Only one pending payment attempt per order.
@@ -94,8 +94,7 @@ paymentSchema.index(
     partialFilterExpression: {
       status: { $in: ["initializing", "pending"] },
     },
-  }
+  },
 );
 
 module.exports = mongoose.model("Payment", paymentSchema);
-

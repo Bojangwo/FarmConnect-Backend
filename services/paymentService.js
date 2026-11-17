@@ -8,9 +8,7 @@ function getModemPayClient() {
   const secretKey = process.env.MODEM_PAY_SECRET_KEY;
 
   if (!secretKey) {
-    throw new Error(
-      "MODEM_PAY_SECRET_KEY is missing from backend/.env"
-    );
+    throw new Error("MODEM_PAY_SECRET_KEY is missing from backend/.env");
   }
 
   if (!modempayClient) {
@@ -22,16 +20,9 @@ function getModemPayClient() {
 
 function normalizePaymentIntent(response) {
   const intent =
-    response?.data &&
-    !Array.isArray(response.data)
-      ? response.data
-      : response;
+    response?.data && !Array.isArray(response.data) ? response.data : response;
 
-  if (
-    response?.status === false ||
-    !intent ||
-    typeof intent !== "object"
-  ) {
+  if (response?.status === false || !intent || typeof intent !== "object") {
     throw new Error("Modem Pay returned an invalid response");
   }
 
@@ -57,8 +48,7 @@ async function createPaymentIntent({ amount }) {
 
   const intent = normalizePaymentIntent(response);
 
-  const providerPaymentId =
-  intent.payment_intent_id || intent.id;
+  const providerPaymentId = intent.payment_intent_id || intent.id;
 
   const paymentLink =
     intent.payment_link ||
@@ -71,16 +61,14 @@ async function createPaymentIntent({ amount }) {
 
   const validAmount =
     Number.isFinite(providerAmount) &&
-    Math.round(providerAmount * 100) ===
-      Math.round(amount * 100);
+    Math.round(providerAmount * 100) === Math.round(amount * 100);
 
   const validLink =
-    typeof paymentLink === "string" &&
-    /^https:\/\//i.test(paymentLink);
+    typeof paymentLink === "string" && /^https:\/\//i.test(paymentLink);
 
   if (
     typeof providerPaymentId !== "string" ||
-!providerPaymentId.trim() ||
+    !providerPaymentId.trim() ||
     !validLink ||
     intent.currency !== "GMD" ||
     !validAmount
@@ -93,24 +81,18 @@ async function createPaymentIntent({ amount }) {
       responseKeys: Object.keys(intent),
     });
 
-    throw new Error(
-      "Modem Pay returned an invalid payment intent"
-    );
+    throw new Error("Modem Pay returned an invalid payment intent");
   }
 
   return {
-  providerPaymentId,
-  paymentLink,
-  providerStatus: intent.status || null,
-  providerAmount,
-  providerCurrency: intent.currency,
-  expiresAt:
-    intent.expires_at ||
-    intent.expiresAt ||
-    null,
-};
+    providerPaymentId,
+    paymentLink,
+    providerStatus: intent.status || null,
+    providerAmount,
+    providerCurrency: intent.currency,
+    expiresAt: intent.expires_at || intent.expiresAt || null,
+  };
 }
-
 
 async function retrievePaymentIntent(paymentId) {
   const client = getModemPayClient();

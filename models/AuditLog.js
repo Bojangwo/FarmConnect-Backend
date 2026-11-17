@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 
 const auditLogSchema = new mongoose.Schema(
@@ -55,7 +54,7 @@ const auditLogSchema = new mongoose.Schema(
       updatedAt: false,
     },
     versionKey: false,
-  }
+  },
 );
 
 auditLogSchema.index({ createdAt: -1 });

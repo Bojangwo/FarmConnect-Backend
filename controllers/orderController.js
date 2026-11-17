@@ -5,7 +5,6 @@ const Product = require("../models/Product");
 const User = require("../models/User");
 const createNotification = require("../utils/createNotification");
 
-
 // Get orders belonging to the logged-in buyer or farmer
 
 const getMyOrders = async (req, res) => {
@@ -48,7 +47,7 @@ const getMyOrders = async (req, res) => {
     }).select("order");
 
     const reviewedOrderIds = new Set(
-      reviews.map((review) => String(review.order))
+      reviews.map((review) => String(review.order)),
     );
 
     const ordersWithReviews = orders.map((order) => ({
@@ -68,8 +67,6 @@ const getMyOrders = async (req, res) => {
     });
   }
 };
-
-
 
 const getMyDeliveries = async (req, res) => {
   try {
@@ -125,9 +122,6 @@ const getMyDeliveries = async (req, res) => {
   }
 };
 
-
-
-
 // Get details of one order belonging to the logged-in buyer or farmer
 const getOrderById = async (req, res) => {
   try {
@@ -172,9 +166,6 @@ const getOrderById = async (req, res) => {
   }
 };
 
-
-
-
 const updateOrderStatus = async (req, res) => {
   const session = await mongoose.startSession();
 
@@ -203,13 +194,13 @@ const updateOrderStatus = async (req, res) => {
     }
 
     const allowedTransitions = {
-  pending: ["confirmed", "cancelled"],
-  confirmed: ["processing", "cancelled"],
-  processing: ["ready_for_delivery"],
-  ready_for_delivery: [],
-  completed: [],
-  cancelled: [],
-};
+      pending: ["confirmed", "cancelled"],
+      confirmed: ["processing", "cancelled"],
+      processing: ["ready_for_delivery"],
+      ready_for_delivery: [],
+      completed: [],
+      cancelled: [],
+    };
 
     let responseStatus = 200;
     let responseBody;
@@ -230,17 +221,14 @@ const updateOrderStatus = async (req, res) => {
       }
 
       // Prevent unpaid online orders from progressing.
-if (
-  status !== "cancelled" &&
-  order.paymentStatus !== "paid"
-) {
-  responseStatus = 400;
-  responseBody = {
-    message:
-      "Payment must be confirmed before this order can be processed",
-  };
-  return;
-}
+      if (status !== "cancelled" && order.paymentStatus !== "paid") {
+        responseStatus = 400;
+        responseBody = {
+          message:
+            "Payment must be confirmed before this order can be processed",
+        };
+        return;
+      }
 
       // Check whether this status change is allowed.
       if (!allowedTransitions[order.status].includes(status)) {
@@ -253,9 +241,7 @@ if (
 
       // Restore product stock when an order is cancelled.
       if (status === "cancelled") {
-        const product = await Product.findById(
-          order.product
-        ).session(session);
+        const product = await Product.findById(order.product).session(session);
 
         if (!product) {
           responseStatus = 404;
@@ -279,11 +265,7 @@ if (
           };
         }
 
-        await Product.updateOne(
-          { _id: product._id },
-          stockUpdate,
-          { session }
-        );
+        await Product.updateOne({ _id: product._id }, stockUpdate, { session });
       }
 
       // Update the order in the same transaction.
@@ -308,8 +290,6 @@ if (
     await session.endSession();
   }
 };
-
-
 
 const assignDeliveryAgent = async (req, res) => {
   try {
@@ -349,96 +329,86 @@ const assignDeliveryAgent = async (req, res) => {
     }
 
     // Prevent delivery assignment for unpaid online orders.
-if (order.paymentStatus !== "paid") {
-  return res.status(400).json({
-    message:
-      "Payment must be confirmed before assigning a delivery agent",
-  });
-}
+    if (order.paymentStatus !== "paid") {
+      return res.status(400).json({
+        message: "Payment must be confirmed before assigning a delivery agent",
+      });
+    }
 
-    
-if (order.status !== "ready_for_delivery") {
-  return res.status(400).json({
-    message:
-      "A delivery agent can only be assigned when the order is ready for delivery",
-  });
-}
-
+    if (order.status !== "ready_for_delivery") {
+      return res.status(400).json({
+        message:
+          "A delivery agent can only be assigned when the order is ready for delivery",
+      });
+    }
 
     if (
-  !["not_assigned", "assigned", "failed"].includes(
-    order.deliveryStatus
-  )
-) {
-  return res.status(400).json({
-    message:
-      "This delivery cannot be assigned or reassigned in its current status",
-  });
-}
+      !["not_assigned", "assigned", "failed"].includes(order.deliveryStatus)
+    ) {
+      return res.status(400).json({
+        message:
+          "This delivery cannot be assigned or reassigned in its current status",
+      });
+    }
 
     const previousAgentId = order.deliveryAgent;
 
-if (!Array.isArray(order.deliveryAssignmentHistory)) {
-  order.deliveryAssignmentHistory = [];
-}
+    if (!Array.isArray(order.deliveryAssignmentHistory)) {
+      order.deliveryAssignmentHistory = [];
+    }
 
-// Record the previous assignment when an agent is being replaced.
-if (
-  previousAgentId &&
-  previousAgentId.toString() !== agent._id.toString()
-) {
-  const previousAssignment =
-    order.deliveryAssignmentHistory
-      .slice()
-      .reverse()
-      .find(
-        (assignment) =>
-          assignment.deliveryAgent.toString() ===
-            previousAgentId.toString() &&
-          assignment.outcome === "assigned"
-      );
+    // Record the previous assignment when an agent is being replaced.
+    if (
+      previousAgentId &&
+      previousAgentId.toString() !== agent._id.toString()
+    ) {
+      const previousAssignment = order.deliveryAssignmentHistory
+        .slice()
+        .reverse()
+        .find(
+          (assignment) =>
+            assignment.deliveryAgent.toString() ===
+              previousAgentId.toString() && assignment.outcome === "assigned",
+        );
 
-  if (previousAssignment) {
-    previousAssignment.outcome = "reassigned";
-  }
-}
+      if (previousAssignment) {
+        previousAssignment.outcome = "reassigned";
+      }
+    }
 
-// Record the new assignment.
-order.deliveryAssignmentHistory.push({
-  deliveryAgent: agent._id,
-  assignedBy: req.user.id,
-  assignedAt: new Date(),
-  outcome: "assigned",
-});
+    // Record the new assignment.
+    order.deliveryAssignmentHistory.push({
+      deliveryAgent: agent._id,
+      assignedBy: req.user.id,
+      assignedAt: new Date(),
+      outcome: "assigned",
+    });
 
-order.deliveryAgent = agent._id;
-order.deliveryStatus = "assigned";
+    order.deliveryAgent = agent._id;
+    order.deliveryStatus = "assigned";
 
-await order.save();
+    await order.save();
 
+    await createNotification({
+      recipient: agent._id,
+      type: "delivery_assigned",
+      title: "New delivery assigned",
+      message: `You have been assigned delivery for order ${order.orderNumber}.`,
+      link: "/delivery/dashboard",
+    });
 
-await createNotification({
-  recipient: agent._id,
-  type: "delivery_assigned",
-  title: "New delivery assigned",
-  message: `You have been assigned delivery for order ${order.orderNumber}.`,
-  link: "/delivery/dashboard",
-});
-
-
-if (
-  previousAgentId &&
-  previousAgentId.toString() !== agent._id.toString()
-) {
-  await createNotification({
-    recipient: previousAgentId,
-    type: "delivery_reassigned",
-    title: "Delivery reassigned",
-    message: `Order ${order.orderNumber} has been reassigned to another delivery agent.`,
-    link: "/delivery/dashboard",
-  });
-}
-
+    if (
+      previousAgentId &&
+      previousAgentId.toString() !== agent._id.toString()
+    ) {
+      await createNotification({
+        recipient: previousAgentId,
+        type: "delivery_reassigned",
+        title: "Delivery reassigned",
+        message: `Order ${order.orderNumber} has been reassigned to another delivery agent.`,
+        link: "/delivery/dashboard",
+      });
+    }
 
     return res.status(200).json({
       message: "Delivery agent assigned successfully",
@@ -454,7 +424,6 @@ if (
   }
 };
 
-
 const updateDeliveryStatus = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -466,12 +435,7 @@ const updateDeliveryStatus = async (req, res) => {
       });
     }
 
-    const allowedStatuses = [
-      "picked_up",
-      "in_transit",
-      "delivered",
-      "failed",
-    ];
+    const allowedStatuses = ["picked_up", "in_transit", "delivered", "failed"];
 
     if (!allowedStatuses.includes(deliveryStatus)) {
       return res.status(400).json({
@@ -528,12 +492,8 @@ const updateDeliveryStatus = async (req, res) => {
 
     order.deliveryStatus = deliveryStatus;
 
-
     // Update the current assignment's outcome when the delivery ends.
-    if (
-      deliveryStatus === "failed" ||
-      deliveryStatus === "delivered"
-    ) {
+    if (deliveryStatus === "failed" || deliveryStatus === "delivered") {
       const history = Array.isArray(order.deliveryAssignmentHistory)
         ? order.deliveryAssignmentHistory
         : [];
@@ -543,9 +503,8 @@ const updateDeliveryStatus = async (req, res) => {
         .reverse()
         .find(
           (assignment) =>
-            assignment.deliveryAgent.toString() ===
-              req.user.id.toString() &&
-            assignment.outcome === "assigned"
+            assignment.deliveryAgent.toString() === req.user.id.toString() &&
+            assignment.outcome === "assigned",
         );
 
       if (currentAssignment) {
@@ -555,38 +514,36 @@ const updateDeliveryStatus = async (req, res) => {
 
     await order.save();
 
+    const deliveryMessages = {
+      picked_up: {
+        title: "Your order has been picked up",
+        message: `Order ${order.orderNumber} has been collected by the delivery agent.`,
+      },
+      in_transit: {
+        title: "Your order is on the way",
+        message: `Order ${order.orderNumber} is now in transit.`,
+      },
+      delivered: {
+        title: "Your order has been delivered",
+        message: `Order ${order.orderNumber} has been marked as delivered. Please confirm receipt.`,
+      },
+      failed: {
+        title: "Delivery unsuccessful",
+        message: `Delivery for order ${order.orderNumber} was unsuccessful.`,
+      },
+    };
 
-const deliveryMessages = {
-  picked_up: {
-    title: "Your order has been picked up",
-    message: `Order ${order.orderNumber} has been collected by the delivery agent.`,
-  },
-  in_transit: {
-    title: "Your order is on the way",
-    message: `Order ${order.orderNumber} is now in transit.`,
-  },
-  delivered: {
-    title: "Your order has been delivered",
-    message: `Order ${order.orderNumber} has been marked as delivered. Please confirm receipt.`,
-  },
-  failed: {
-    title: "Delivery unsuccessful",
-    message: `Delivery for order ${order.orderNumber} was unsuccessful.`,
-  },
-};
+    const notification = deliveryMessages[deliveryStatus];
 
-const notification = deliveryMessages[deliveryStatus];
-
-if (notification) {
-  await createNotification({
-    recipient: order.buyer,
-    type: `delivery_${deliveryStatus}`,
-    title: notification.title,
-    message: notification.message,
-    link: "/buyer/orders",
-  });
-}
-
+    if (notification) {
+      await createNotification({
+        recipient: order.buyer,
+        type: `delivery_${deliveryStatus}`,
+        title: notification.title,
+        message: notification.message,
+        link: "/buyer/orders",
+      });
+    }
 
     return res.status(200).json({
       message: "Delivery status updated successfully",
@@ -601,8 +558,6 @@ if (notification) {
   }
 };
 
-
-
 const getDeliveryHistory = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -616,17 +571,12 @@ const getDeliveryHistory = async (req, res) => {
 
     // Find the order and retrieve its delivery history.
     const order = await Order.findById(orderId)
-      .select(
-        "orderNumber status deliveryStatus deliveryAssignmentHistory"
-      )
+      .select("orderNumber status deliveryStatus deliveryAssignmentHistory")
       .populate(
         "deliveryAssignmentHistory.deliveryAgent",
-        "name phone role status"
+        "name phone role status",
       )
-      .populate(
-        "deliveryAssignmentHistory.assignedBy",
-        "name role"
-      )
+      .populate("deliveryAssignmentHistory.assignedBy", "name role")
       .lean();
 
     if (!order) {
@@ -653,8 +603,6 @@ const getDeliveryHistory = async (req, res) => {
     });
   }
 };
-
-
 
 const confirmDelivery = async (req, res) => {
   try {
@@ -706,25 +654,23 @@ const confirmDelivery = async (req, res) => {
 
     await order.save();
 
+    await createNotification({
+      recipient: order.farmer,
+      type: "delivery_confirmed",
+      title: "Buyer confirmed delivery",
+      message: `The buyer has confirmed receipt of order ${order.orderNumber}.`,
+      link: "/farmer/orders",
+    });
 
-await createNotification({
-  recipient: order.farmer,
-  type: "delivery_confirmed",
-  title: "Buyer confirmed delivery",
-  message: `The buyer has confirmed receipt of order ${order.orderNumber}.`,
-  link: "/farmer/orders",
-});
-
-if (order.deliveryAgent) {
-  await createNotification({
-    recipient: order.deliveryAgent,
-    type: "delivery_confirmed",
-    title: "Delivery confirmed",
-    message: `The buyer has confirmed receipt of order ${order.orderNumber}.`,
-    link: "/delivery/dashboard",
-  });
-}
-
+    if (order.deliveryAgent) {
+      await createNotification({
+        recipient: order.deliveryAgent,
+        type: "delivery_confirmed",
+        title: "Delivery confirmed",
+        message: `The buyer has confirmed receipt of order ${order.orderNumber}.`,
+        link: "/delivery/dashboard",
+      });
+    }
 
     return res.status(200).json({
       message: "Delivery confirmed successfully",
@@ -738,7 +684,6 @@ if (order.deliveryAgent) {
     });
   }
 };
-
 
 const updateDeliveryLocation = async (req, res) => {
   try {
@@ -788,13 +733,12 @@ const updateDeliveryLocation = async (req, res) => {
       {
         returnDocument: "after",
         runValidators: true,
-      }
+      },
     );
 
     if (!order) {
       return res.status(404).json({
-        message:
-          "Active delivery not found or not assigned to you",
+        message: "Active delivery not found or not assigned to you",
       });
     }
 
@@ -827,7 +771,7 @@ const getBuyerDeliveryLocation = async (req, res) => {
       _id: orderId,
       buyer: req.user.id,
     }).select(
-      "orderNumber status deliveryStatus deliveryAgent deliveryTracking.currentLocation"
+      "orderNumber status deliveryStatus deliveryAgent deliveryTracking.currentLocation",
     );
 
     if (!order) {

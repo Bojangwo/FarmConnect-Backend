@@ -34,27 +34,21 @@ const purchaseRequestSchema = new mongoose.Schema(
     },
 
     deliveryAddress: {
-  type: String,
-  trim: true,
-  required: true,
-  maxlength: 300,
-},
+      type: String,
+      trim: true,
+      required: true,
+      maxlength: 300,
+    },
 
     status: {
       type: String,
-      enum: [
-        "pending",
-        "accepted",
-        "rejected",
-        "cancelled",
-        "expired",
-      ],
+      enum: ["pending", "accepted", "rejected", "cancelled", "expired"],
       default: "pending",
     },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 purchaseRequestSchema.index({ buyer: 1 });
@@ -64,7 +58,7 @@ purchaseRequestSchema.index({ status: 1 });
 
 const PurchaseRequest = mongoose.model(
   "PurchaseRequest",
-  purchaseRequestSchema
+  purchaseRequestSchema,
 );
 
 module.exports = PurchaseRequest;

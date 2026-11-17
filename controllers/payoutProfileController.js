@@ -1,10 +1,10 @@
-
 const User = require("../models/User");
 
 const getMyPayoutDetails = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id)
-      .select("name role payoutDetails");
+    const user = await User.findById(req.user.id).select(
+      "name role payoutDetails",
+    );
 
     if (!user) {
       return res.status(404).json({
@@ -24,8 +24,7 @@ const getMyPayoutDetails = async (req, res) => {
 
 const updateMyPayoutDetails = async (req, res) => {
   try {
-    const { provider, phoneNumber, accountHolderName } =
-      req.body || {};
+    const { provider, phoneNumber, accountHolderName } = req.body || {};
 
     if (!["wave", "aps"].includes(provider)) {
       return res.status(400).json({
@@ -33,8 +32,7 @@ const updateMyPayoutDetails = async (req, res) => {
       });
     }
 
-    const phone = String(phoneNumber || "")
-      .replace(/[\s-]/g, "");
+    const phone = String(phoneNumber || "").replace(/[\s-]/g, "");
 
     if (!/^(?:\+220|220)?[0-9]{7}$/.test(phone)) {
       return res.status(400).json({
@@ -66,7 +64,7 @@ const updateMyPayoutDetails = async (req, res) => {
           "payoutDetails.updatedAt": new Date(),
         },
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).select("name role payoutDetails");
 
     if (!user) {

@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 
 const payoutSchema = new mongoose.Schema(
@@ -71,13 +70,10 @@ const payoutSchema = new mongoose.Schema(
       default: null,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Prevent duplicate payouts for the same recipient type/order.
-payoutSchema.index(
-  { order: 1, recipientType: 1 },
-  { unique: true }
-);
+payoutSchema.index({ order: 1, recipientType: 1 }, { unique: true });
 
 module.exports = mongoose.model("Payout", payoutSchema);
